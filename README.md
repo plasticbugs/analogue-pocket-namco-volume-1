@@ -67,3 +67,82 @@ sim/run_system.sh 400          # boot the whole machine, frames and audio to sim
 
 The MAME captures under `artifacts/` are produced by the Lua scripts in
 `tools/` (`tools/mame_run.sh` runs MAME headless with disposable directories).
+
+## Credits
+
+The Namco ND-1-specific RTL, reference renderer and verification harness
+(`rtl/`, `tools/`, `sim/`) are original; the rest of the core is built on
+MAME's device models, one vendored CPU core, and the Pocket's platform layer.
+
+### The hardware description
+
+* MAME's `namco/namcond1.cpp` by **Mark McDougall** and **R. Belmont** — the
+  ND-1 board driver this core's memory map and machine description
+  (`docs/hardware.md`) are derived from. Its "Guru-Readme" section is the
+  source for the board's PCB layout and part list.
+* MAME's `namco/ygv608.cpp` by **Mark McDougall** and **Angelo Salese** — the
+  Yamaha YGV608 device model `rtl/ygv608.sv` and `rtl/ygv608_render.sv`, and
+  the reference renderer `tools/render_model.py`, were written from it;
+  documented in `docs/ygv608.md`.
+* MAME's `sound/c352.cpp` by **R. Belmont** and **superctr** — the Namco C352
+  PCM model `rtl/c352.sv` (per-voice stepping, volume ramp, mu-law table) was
+  written from it.
+* MAME's H8 CPU core — `cpu/h8/h8.cpp`, `h8.lst`, `h83002.cpp` and `h8h.cpp`,
+  plus the on-chip peripheral models `h8_intc.cpp`, `h8_timer16.cpp`,
+  `h8_adc.cpp`, `h8_dma.cpp`, `h8_dtc.cpp`, `h8_port.cpp`, `h8_sci.cpp` and
+  `h8_watchdog.cpp` — all by **Olivier Galibert**. `rtl/h8300h.sv` (the
+  H8/300H core) and `rtl/h83002.sv` (the on-chip peripherals the ND-1 sub
+  program actually touches) were written as an executable spec against them.
+* MAME's `machine/at28c16.cpp` by **smf** — the AT28C16 EEPROM model
+  `rtl/at28c16.sv`, including its erased-at-power-on (0xFF) state, was written
+  from it.
+* MAME's `tilemap.cpp` by **Aaron Giles** — the generic tilemap compositing
+  (`tilemap_t::draw`, `draw_roz_core`) that `tools/render_model.py` reproduces
+  for the YGV608's plain and ROZ tilemap drawing.
+
+### Documentation
+
+* Renesas' *H8/300H Series Software Manual* (REJ09B0213, available from
+  Renesas) — the instruction-set reference `rtl/h8300h.sv` was implemented
+  against. It is not redistributed here.
+
+### CPU
+
+* fx68k, the cycle-accurate 68000 core, by **Jorge Cwik** (GPLv3) —
+  `modules/cpu-fx68k`, used for both simulation (`sim/run_system.sh`,
+  `sim/lint.sh`) and synthesis (`rtl/index.qip`), so what the benches verify
+  is what ships.
+
+### Platform layer
+
+* The Pocket platform layer is the
+  [OpenGateware](https://github.com/opengateware) framework, whose primary
+  author is **Marcus Andrade** (MIT and GPL-3.0-or-later per file). Within it
+  this core also uses work by **Alexey Melnikov** (audio filters, DC blocker,
+  scanlines and shadow mask), **Till Harbaum** (the original scanline
+  generator) and **Adam Gastineau** (data loader and unloader).
+* `platform/pocket/bsp/pocket/apf_top.sv` and the APF bridge peripherals in
+  `platform/pocket/peripherals/` are supplied by **Analogue Enterprises
+  Limited** under its own Analogue Pocket Framework Software License
+  Agreement and EULA, not under the GPL/MIT terms above.
+* `target/pocket/sdram_ctrl.sv`'s pin-level timing (CL2, read data captured at
+  READ+4) is carried over from the Punch-Out!! core's `sdram16.sv`, by way of
+  the S.T.U.N. Runner and Gaiapolis cores, all proven on the Pocket at 96 MHz.
+* PLL and memory wrappers under `target/pocket/core_pll/` and
+  `platform/pocket/megafunctions/` are generated Altera/Intel megafunction
+  instantiations.
+
+### Tools
+
+* **MAME** as the oracle throughout — driven headless via the Lua scripts in
+  `tools/` (`tools/mame_run.sh`) to dump frozen states, tap device reads and
+  capture reference frames.
+* **Verilator** for simulation and lint, **Quartus Prime** for synthesis,
+  **Python 3** for the reference renderer and ROM builder
+  (`tools/mra_build.py`, `tools/render_model.py`) — no third-party Python
+  modules.
+
+### Game
+
+Namco Classic Collection Vol.1 is © 1995 Namco. No ROM data of any kind is
+included in this repository — see "Building the ROM image" above.

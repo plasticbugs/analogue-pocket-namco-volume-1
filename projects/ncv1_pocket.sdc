@@ -17,7 +17,9 @@ set_clock_groups -asynchronous \
  -group { ic|pocket_audio_mixer|audio_pll|mf_audio_pll_inst|altera_pll_i|general[1].gpll~PLL_OUTPUT_COUNTER|divclk }
 
 # SDRAM: the chip is clocked by the phase-shifted PLL output (the S.T.U.N.
-# Runner core's proven arrangement, same controller). The shift is 6.51 ns
+# Runner core's proven arrangement, same controller). This core uses 6.12 ns
+# (three VCO steps earlier than Gaiapolis's 6.51): its first fit missed the data
+# inputs by 0.27 ns with 3 ns spare on the outputs. Gaiapolis's history: 6.51 ns
 # (50 eighths of the 960 MHz VCO period; legal values are multiples of
 # 130.2 ps), 0.26 ns later than there: it was 6.90 while the address
 # registers sat in core logic, and with them in the IO cells (3 ns of slack)

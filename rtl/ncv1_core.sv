@@ -90,7 +90,7 @@ module ncv1_core #(
     logic [15:1] b_sh_addr;  logic b_sh_req, b_sh_ack; logic [1:0] b_sh_we; logic [15:0] b_sh_wdata, b_sh_q;
     logic        c352_wr, c352_rd; logic [9:0] c352_addr; logic [15:0] c352_wdata, c352_q;
     logic        h8_reset;
-    assign h8_reset = reset | ~h8_run;
+    always_ff @(posedge clk) h8_reset <= reset | ~h8_run;      // registered: it fans out across the H8
 
     // the H8 sees the vblank as IRQ5 while the cuskey enables it (MAME: pulse per vblank when enabled)
     logic vb_d;

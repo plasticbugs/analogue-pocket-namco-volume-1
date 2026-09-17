@@ -13,7 +13,7 @@ for f in $(cd rtl && ls *.sv | sort); do
     echo "set_global_assignment -name SYSTEMVERILOG_FILE [file join \$::quartus(qip_path) \"$f\"]"
 done
 echo ""
-echo "# fx68k 68000 (Jorge Cwik, LGPL-3.0)"
+echo "# fx68k 68000 (Jorge Cwik, GPL-3.0)"
 for f in fx68k.sv fx68kAlu.sv uaddrPla.sv; do
     echo "set_global_assignment -name SYSTEMVERILOG_FILE [file join \$::quartus(qip_path) \"../modules/cpu-fx68k/$f\"]"
 done

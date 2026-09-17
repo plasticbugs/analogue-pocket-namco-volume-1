@@ -17,7 +17,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "ygv608_render.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "ygv608.sv"]
 
-# fx68k 68000 (Jorge Cwik, LGPL-3.0)
+# fx68k 68000 (Jorge Cwik, GPL-3.0)
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "../modules/cpu-fx68k/fx68k.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "../modules/cpu-fx68k/fx68kAlu.sv"]
 set_global_assignment -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "../modules/cpu-fx68k/uaddrPla.sv"]

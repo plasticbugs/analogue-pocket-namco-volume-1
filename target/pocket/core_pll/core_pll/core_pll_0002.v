@@ -41,7 +41,7 @@ module  core_pll_0002(
 		.phase_shift2("44270 ps"),
 		.duty_cycle2(50),
 		.output_clock_frequency3("96.000000 MHz"),
-		.phase_shift3("6510 ps"),
+		.phase_shift3("6120 ps"),
 		.duty_cycle3(50),
 		.output_clock_frequency4("96.000000 MHz"),
 		.phase_shift4("0 ps"),

@@ -44,3 +44,7 @@ error.log
 artifacts/h8*/
 artifacts/c352/*.wav
 artifacts/c352/*_log.txt
+
+# vendor manuals: download from the vendor, never redistribute
+ref/docs/*.pdf
+ref/docs/*.txt

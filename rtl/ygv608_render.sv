@@ -119,7 +119,7 @@ module ygv608_render (
     typedef enum logic [5:0] {
         S_IDLE, S_PHASE, S_FILL,
         S_PL_INIT, S_PL_RS0, S_PL_RS1, S_PL_CS0, S_PL_CS1, S_PL_SETUP, S_PL_ROWRS0, S_PL_ROWRS1, S_PL_ROWRS2,
-        S_T_COL, S_T_CS0, S_T_CS1, S_T_PNT, S_T_PNT1, S_T_PAGE0, S_T_PAGE1, S_T_CODE, S_T_FETCH, S_T_WAIT, S_T_WRITE, S_T_NEXT,
+        S_T_COL, S_T_CS0, S_T_CS1, S_T_PNT, S_T_PNT1, S_T_PAGE0, S_T_PAGE1, S_T_CODE, S_T_FETCH, S_T_WAIT, S_T_ALIGN, S_T_WRITE, S_T_NEXT,
         S_SP_INIT, S_SP_READ, S_SP_READ1, S_SP_DECODE, S_SP_FETCH, S_SP_WAIT, S_SP_WRITE, S_SP_NEXT,
         S_R_SETUP0, S_R_SETUP1, S_R_A, S_R_B, S_R_C, S_R_D, S_R_FETCH, S_R_WAIT,
         S_DONE
@@ -405,7 +405,7 @@ module ygv608_render (
                     pat_req <= 1'b0;
                     rowbuf <= {rowbuf[95:0], pat_q};
                     if (fidx + 3'd1 == nfetch) begin
-                        st <= S_T_WRITE; xx <= 5'd0;
+                        st <= S_T_ALIGN; xx <= 5'd0;
                         npix_m1 <= pts16 ? 7'd15 : 7'd7;
                     end else begin
                         fidx <= fidx + 3'd1;
@@ -413,15 +413,30 @@ module ygv608_render (
                     end
                 end
             end
+            // rowbuf holds nfetch units in its low bits, first pixel highest. Put the pixel
+            // to draw first at bits 127:124 (4bpp) or 127:120 (8bpp): shift the row up, or for
+            // a flipped tile reverse it pixel by pixel, which also lands it at the top
+            S_T_ALIGN: begin
+                logic [127:0] rev;
+                if (tflipx) begin
+                    for (int i = 0; i < 128; i++) rev[i] = 1'b0;
+                    if (cur_8bpp) for (int p = 0; p < 16; p++) rev[127 - p*8 -: 8] = rowbuf[p*8 +: 8];
+                    else          for (int p = 0; p < 32; p++) rev[127 - p*4 -: 4] = rowbuf[p*4 +: 4];
+                    rowbuf <= rev;
+                end else begin
+                    case (nfetch)
+                    3'd1:    rowbuf <= {rowbuf[31:0], 96'd0};
+                    3'd2:    rowbuf <= {rowbuf[63:0], 64'd0};
+                    3'd3:    rowbuf <= {rowbuf[95:0], 32'd0};
+                    default: rowbuf <= rowbuf;
+                    endcase
+                end
+                st <= S_T_WRITE;
+            end
             S_T_WRITE: begin
-                logic [9:0] dx; logic [7:0] pen, idx; logic transp; logic [4:0] pidx;
-                logic [127:0] rb; logic [7:0] shl;
-                // rowbuf holds nfetch words in its low bits; move the first pixel to bit 127
-                shl = 8'd128 - {nfetch, 5'b00000};
-                rb  = rowbuf << shl;
-                pidx = tflipx ? (npix_m1[4:0] - xx) : xx;
-                if (cur_8bpp) pen = rb[127 - {pidx, 3'b000} -: 8];
-                else          pen = {4'd0, rb[127 - {1'b0, pidx, 2'b00} -: 4]};
+                logic [9:0] dx; logic [7:0] pen, idx; logic transp;
+                pen = cur_8bpp ? rowbuf[127:120] : {4'd0, rowbuf[127:124]};
+                rowbuf <= cur_8bpp ? {rowbuf[119:0], 8'd0} : {rowbuf[123:0], 4'd0};
                 dx  = xpos + {5'd0, xx};
                 idx = cur_8bpp ? pen : {colour, pen[3:0]};
                 if (plane) begin

@@ -415,7 +415,10 @@ module core_top
 
     // ---------------------------------------------------------- the machine
     // held in reset until the image and the save slot are loaded and SDRAM is ready
-    wire        core_reset = reset_sw_s | ~loaded_s | ~mem_ready | dl_busy | ioctl_download;
+    // registered twice: it fans out to every register in the machine and nothing needs it fast
+    wire        core_reset_c = reset_sw_s | ~loaded_s | ~mem_ready | dl_busy | ioctl_download;
+    reg         core_reset_q = 1'b1, core_reset = 1'b1;
+    always @(posedge clk_sys) begin core_reset_q <= core_reset_c; core_reset <= core_reset_q; end
     // EEPROM load from the save slot (slot 1); read-out for the save
     wire        nv_load_we = nv_dl_download && nv_dl_index == 16'h1 && nv_dl_wr;
     // inputs: active low. DSW: bit 8 freeze, 9 test, 12 coin1, 13 coin2, 14 service, 15 service1
