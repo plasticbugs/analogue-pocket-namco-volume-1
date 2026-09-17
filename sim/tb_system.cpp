@@ -140,7 +140,7 @@ int main(int argc, char **argv) {
     write_wav(outdir + "/audio.wav", audio, 85333);
     printf("done: %ld frames, %ld clocks, h8 %ld instructions %ld irqs, audio %zu samples%s%s\n", frames, clocks, h8_instr, h8_irqs, audio.size() / 2,
            unsup ? " UNSUPPORTED-VIDEO" : "", halted ? " 68K-HALTED" : "");
-    if (unsup) printf("unsupported video first at frame %ld, sources %s%s%s%s\n", unsup_frame, (unsup_src & 8) ? "rom-dma " : "", (unsup_src & 4) ? "zron " : "", (unsup_src & 2) ? "mosaic " : "", (unsup_src & 1) ? "render-overrun " : "");
+    if (unsup) printf("unsupported video first at frame %ld, sources %s%s%s%s\n", unsup_frame, (unsup_src & 8) ? "rom-dma " : "", (unsup_src & 4) ? "roz-case " : "", (unsup_src & 2) ? "mosaic " : "", (unsup_src & 1) ? "render-overrun " : "");
     delete top;
     return 0;
 }

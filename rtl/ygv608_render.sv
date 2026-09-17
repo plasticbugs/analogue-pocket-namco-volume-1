@@ -552,8 +552,11 @@ module ygv608_render (
                 // this line's start: + y * incyx (m_dxy), + y * incyy (m_dy)
                 roz_mx <= roz_dxy * {24'd0, y};
                 roz_my <= roz_dy * {24'd0, y};
-                if ((roz_dx == 32'h10000 && roz_dy == 32'h10000 && roz_dxy == 32'd0 && roz_dyx == 32'd0 && roz_wrap)
-                    || (plane && !roz_wrap)) roz_unsupported <= 1'b1;
+                // identity: MAME draws unrotated with only tilemap column 0 taking starty >> 16, which
+                // differs from sampling only when AY has an integer part; plane B unwrapped keeps
+                // MAME's previous work bitmap
+                if ((roz_dx == 32'h10000 && roz_dy == 32'h10000 && roz_dxy == 32'd0 && roz_dyx == 32'd0 && roz_wrap
+                     && roz_ay[31:16] != 16'd0) || (plane && !roz_wrap)) roz_unsupported <= 1'b1;
                 st <= S_R_SETUP1;
             end
             S_R_SETUP1: begin
