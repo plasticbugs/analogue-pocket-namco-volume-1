@@ -178,6 +178,12 @@ C352 front L/R (16-bit signed) at 85.333 kHz, held per sample tick, then
 handed to the platform `audio_mixer` which resamples in its own clock
 domain (the toggle-flag CDC of METHODOLOGY §5.4 lives inside it).
 
+The C352's 85,333 Hz stream becomes 48 kHz in `core_top.sv` (the mean of the
+one or two samples per 48 kHz tick) for the optional cabinet reverb
+(`rtl/nc_reverb.sv`, from the Pole Position core: three damped combs at 29.7,
+37.1 and 41.1 ms fed the mid signal, one tail under both channels;
+`sim/run_reverb.sh`), and crosses to the Pocket's audio clock with a toggle.
+
 ## 6. Save data
 
 The AT28C16 is the game's settings/high-score store. Data slot 2 (2 KB) loads

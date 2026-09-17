@@ -1,114 +1,131 @@
 {
-  "interact": {
-    "magic": "APF_VER_1",
-    "variables": [
-      {
-        "name": "Reset Core",
-        "id": 0,
-        "type": "action",
-        "enabled": true,
-        "address": "0xF0000000",
-        "value": 1
-      },
-      {
-        "name": "Screen Shape",
-        "id": 60,
-        "type": "list",
-        "enabled": true,
-        "persist": true,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFF9",
-        "options": [
-          {
-            "name": "Arcade 3:4",
-            "value": "0x00000000"
-          },
-          {
-            "name": "Square pixels",
-            "value": "0x00000002"
-          }
-        ]
-      },
-      {
-        "name": "Scanlines",
-        "id": 61,
-        "type": "list",
-        "enabled": true,
-        "persist": true,
-        "address": "0xF3000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFFFC",
-        "options": [
-          {
-            "name": "Off",
-            "value": "0x00000000"
-          },
-          {
-            "name": "25%",
-            "value": "0x00000001"
-          },
-          {
-            "name": "50%",
-            "value": "0x00000002"
-          },
-          {
-            "name": "75%",
-            "value": "0x00000003"
-          }
-        ]
-      },
-      {
-        "name": "Shadow Mask",
-        "id": 62,
-        "type": "list",
-        "enabled": true,
-        "persist": true,
-        "address": "0xF3000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFF8F",
-        "options": [
-          {
-            "name": "Off",
-            "value": "0x00000000"
-          },
-          {
-            "name": "On",
-            "value": "0x00000010"
-          },
-          {
-            "name": "On, rotated",
-            "value": "0x00000030"
-          },
-          {
-            "name": "On, 2x",
-            "value": "0x00000050"
-          }
-        ]
-      },
-      {
-        "name": "Test Mode Switch",
-        "id": 63,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "mask": "0xFFFFFEFF",
-        "value": "0x00000100"
-      },
-      {
-        "name": "Diagnostic Overlay",
-        "id": 64,
-        "type": "check",
-        "enabled": true,
-        "persist": false,
-        "address": "0xF2000000",
-        "defaultval": 0,
-        "value": "0x00000008",
-        "mask": "0xFFFFFFF7"
-      }
-    ],
-    "messages": []
-  }
+    "interact": {
+        "magic": "APF_VER_1",
+        "variables": [
+            {
+                "name": "Reset Core",
+                "id": 0,
+                "type": "action",
+                "enabled": true,
+                "address": "0xF0000000",
+                "value": 1
+            },
+            {
+                "name": "Screen Shape",
+                "id": 60,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF2000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFFF9",
+                "options": [
+                    {
+                        "name": "Arcade 3:4",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "Square pixels",
+                        "value": "0x00000002"
+                    }
+                ]
+            },
+            {
+                "name": "Scanlines",
+                "id": 61,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF3000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFFFC",
+                "options": [
+                    {
+                        "name": "Off",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "25%",
+                        "value": "0x00000001"
+                    },
+                    {
+                        "name": "50%",
+                        "value": "0x00000002"
+                    },
+                    {
+                        "name": "75%",
+                        "value": "0x00000003"
+                    }
+                ]
+            },
+            {
+                "name": "Shadow Mask",
+                "id": 62,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF3000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFF8F",
+                "options": [
+                    {
+                        "name": "Off",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "On",
+                        "value": "0x00000010"
+                    },
+                    {
+                        "name": "On, rotated",
+                        "value": "0x00000030"
+                    },
+                    {
+                        "name": "On, 2x",
+                        "value": "0x00000050"
+                    }
+                ]
+            },
+            {
+                "name": "Test Mode Switch",
+                "id": 63,
+                "type": "check",
+                "enabled": true,
+                "persist": false,
+                "address": "0xF2000000",
+                "defaultval": 0,
+                "mask": "0xFFFFFEFF",
+                "value": "0x00000100"
+            },
+            {
+                "name": "Cabinet Reverb",
+                "id": 65,
+                "type": "list",
+                "enabled": true,
+                "persist": true,
+                "address": "0xF2000000",
+                "defaultval": 0,
+                "mask": "0xFFFF3FFF",
+                "options": [
+                    {
+                        "name": "Off",
+                        "value": "0x00000000"
+                    },
+                    {
+                        "name": "Light",
+                        "value": "0x00004000"
+                    },
+                    {
+                        "name": "Medium",
+                        "value": "0x00008000"
+                    },
+                    {
+                        "name": "Heavy",
+                        "value": "0x0000C000"
+                    }
+                ]
+            }
+        ],
+        "messages": []
+    }
 }

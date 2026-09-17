@@ -486,6 +486,8 @@ module core_top
     assign video_preset = (mod_sw0[2:1] == 2'd1) ? 3'd1 : 3'd0;
 
     // ---------------------------------------------------------- diagnostic overlay
+    // no menu entry: a hardware fault hunt re-adds one to interact.json (check, address
+    // 0xF2000000, mask 0xFFFFFFF7, value 0x8) without a rebuild
     wire        ovl_en = mod_sw0[3];
     logic [7:0] ovl_frames;
     logic       ovl_vs_d, ovl_seen_h8, ovl_seen_irq, ovl_seen_snd, ovl_unsup, ovl_unsup_l;
@@ -529,11 +531,47 @@ module core_top
     assign core_r = vr_q; assign core_g = vg_q; assign core_b = vb_q;
     assign core_hs = vhs_q; assign core_vs = vvs_q; assign core_de = vde_q;
 
-    // audio CDC (METHODOLOGY §5.4): hold per sample, hand over with a toggle
+    // ---------------------------------------------------------- audio
+    // The C352 delivers 85,333 samples a second; the cabinet reverb (rtl/nc_reverb.sv, the
+    // Pole Position core's, menu "Cabinet Reverb" off / light / medium / heavy) has its
+    // delay lengths in 48 kHz samples. A 48 kHz tick (96 MHz / 2000) takes the mean of the
+    // one or two C352 samples since the last tick into the reverb; the reverb settles
+    // about ten clocks later, and its output is held on the next tick and handed to the
+    // Pocket's audio clock with a toggle (METHODOLOGY section 5.4).
+    wire  [1:0] reverb_mode = mod_sw1[7:6];
+    logic [10:0] rv_div = 11'd0;
+    wire         rv_tick = (rv_div == 11'd1999);
+    logic signed [16:0] acc_l = 17'sd0, acc_r = 17'sd0;
+    logic               acc_any = 1'b0, acc_two = 1'b0;
+    logic signed [15:0] rv_in_l = 16'sd0, rv_in_r = 16'sd0;
+    logic               rv_ce = 1'b0;
+    wire  signed [16:0] snd_l17 = {ga_snd_l[15], ga_snd_l}, snd_r17 = {ga_snd_r[15], ga_snd_r};
+    wire  signed [16:0] half_l = acc_l >>> 1, half_r = acc_r >>> 1;
+    always_ff @(posedge clk_sys) begin
+        rv_div <= rv_tick ? 11'd0 : rv_div + 11'd1;
+        rv_ce  <= rv_tick;
+        if (rv_tick) begin
+            if (acc_any) begin
+                rv_in_l <= acc_two ? half_l[15:0] : acc_l[15:0];
+                rv_in_r <= acc_two ? half_r[15:0] : acc_r[15:0];
+            end
+            acc_any <= ga_snd_valid; acc_two <= 1'b0;
+            if (ga_snd_valid) begin acc_l <= snd_l17; acc_r <= snd_r17; end
+        end else if (ga_snd_valid) begin
+            acc_any <= 1'b1; acc_two <= acc_any;
+            acc_l <= acc_any ? acc_l + snd_l17 : snd_l17;
+            acc_r <= acc_any ? acc_r + snd_r17 : snd_r17;
+        end
+    end
+    wire signed [15:0] rv_l, rv_r;
+    nc_reverb pocket_reverb (
+        .clk(clk_sys), .reset(~pll_locked_sys), .ce(rv_ce), .mode(reverb_mode),
+        .in_l(rv_in_l), .in_r(rv_in_r), .out_l(rv_l), .out_r(rv_r));
+
     logic signed [15:0] snd_hold_l = 16'sd0, snd_hold_r = 16'sd0;
     logic               snd_tog = 1'b0;
     always_ff @(posedge clk_sys) begin
-        if (ga_snd_valid) begin snd_hold_l <= ga_snd_l; snd_hold_r <= ga_snd_r; snd_tog <= ~snd_tog; end
+        if (rv_tick) begin snd_hold_l <= rv_l; snd_hold_r <= rv_r; snd_tog <= ~snd_tog; end
     end
     logic        [2:0]  snd_tog_s = 3'd0;
     logic signed [15:0] snd_xfer_l = 16'sd0, snd_xfer_r = 16'sd0;

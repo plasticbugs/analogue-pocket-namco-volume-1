@@ -18,10 +18,11 @@ set_global_assignment -name TOP_LEVEL_ENTITY apf_top
 # Compiler Assignments
 # ==============================================================================
 set_global_assignment -name NUM_PARALLEL_PROCESSORS 1
-# Area-first: the enable-stepped cores have generous multicycle budgets (see
-# the .sdc), so trading peak Fmax for logic density is the right side of the
-# curve -- the SPEED/HIGH-PERFORMANCE setting overflowed the device by 59 ALMs.
-set_global_assignment -name OPTIMIZATION_MODE "AGGRESSIVE AREA"
+# Speed-first, as the Punch-Out!! and Pole Position projects are: this design fills
+# 55 % of the device, and the area-first settings this project inherited from the
+# Gaiapolis core (which filled it) left the 96 MHz clock closing by 0.2 ns or missing by
+# 0.4 depending on the fitter's mood.
+set_global_assignment -name OPTIMIZATION_MODE "HIGH PERFORMANCE EFFORT"
 set_global_assignment -name SAVE_DISK_SPACE OFF
 set_global_assignment -name SMART_RECOMPILE OFF
 
@@ -30,12 +31,8 @@ set_global_assignment -name SMART_RECOMPILE OFF
 # ==============================================================================
 set_global_assignment -name ADV_NETLIST_OPT_SYNTH_WYSIWYG_REMAP ON
 set_global_assignment -name ALLOW_POWER_UP_DONT_CARE ON
-set_global_assignment -name MUX_RESTRUCTURE ON
-set_global_assignment -name OPTIMIZATION_TECHNIQUE AREA
-# The binding constraint is LAB packing, not raw ALM count (ALMs fit at
-# 18,454/18,480 while the fitter still wanted 1,860 of 1,848 LABs), so pack
-# registers for density explicitly.
-set_global_assignment -name AUTO_PACKED_REGISTERS_STRATIXII "MINIMIZE AREA WITH CHAINS"
+set_global_assignment -name MUX_RESTRUCTURE OFF
+set_global_assignment -name OPTIMIZATION_TECHNIQUE SPEED
 set_global_assignment -name PRE_MAPPING_RESYNTHESIS ON
 set_global_assignment -name REMOVE_REDUNDANT_LOGIC_CELLS ON
 set_global_assignment -name SAFE_STATE_MACHINE OFF
@@ -51,11 +48,12 @@ set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 # AUTO FIT stops as soon as it believes constraints are met and leaves margin
 # on the table; at 99% utilisation, with setup and hold trading against each
 # other, we need every picosecond the placer can find.
-set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name FITTER_EFFORT "AUTO FIT"
+set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name PERIPHERY_TO_CORE_PLACEMENT_AND_ROUTING_OPTIMIZATION ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
-set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION OFF
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING ON
 set_global_assignment -name ROUTER_CLOCKING_TOPOLOGY_ANALYSIS ON
 set_global_assignment -name ROUTER_LCELL_INSERTION_AND_LOGIC_DUPLICATION ON

@@ -68,7 +68,13 @@ switches live between the cabinet's 3:4 and square pixels. The aspect values in
 D-pad or stick moves; A = button 1, B = button 2, X = button 3, Select =
 coin, Start = 1 player start, Y = 2 player start. A second pad plays player 2,
 and its Start is also the 2 player start. The buttons can be remapped in the
-Pocket's controls menu; the directions are fixed. Test/service switches are in
+Pocket's controls menu; the directions are fixed.
+
+The core's menu has Screen Shape, Scanlines, Shadow Mask, the Test Mode switch
+and **Cabinet Reverb** (Off, Light, Medium, Heavy): the short, dark room from
+the Punch-Out!! and Pole Position cores around the whole mix, an option and not
+part of the board. The C352's stereo image is kept; the room is the same on
+both sides. Test/service switches are in
 the core's interact menu.
 
 ## Building the core
@@ -90,6 +96,7 @@ tools/regress_video.sh         # VDP RTL vs the reference renderer
 sim/run_h8.sh                  # H8/300H CPU trace replay (H8DIR=artifacts/h8, h8_game, h8_ncv2, h8_ncv2_game)
 sim/run_sub.sh                 # H8/3002 + peripherals + decode trace replay (same captures)
 sim/run_c352.sh                # C352 vs MAME audio
+sim/run_reverb.sh              # cabinet reverb: dry path, first echo, stereo tail, no overflow
 sim/run_mem.sh                 # SDRAM partition: load the image, read it back through every port
 sim/run_system.sh 400          # boot the whole machine, frames and audio to sim/obj_system/out
                                # (ROM=artifacts/ncv2.rom for Vol.2; Vol.2 benches take ROM= the same way)

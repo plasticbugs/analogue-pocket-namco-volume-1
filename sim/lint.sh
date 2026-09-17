@@ -21,7 +21,7 @@ done
 RTL="$(ls rtl/*.sv 2>/dev/null)"
 VENDOR="modules/cpu-fx68k/fx68k.sv modules/cpu-fx68k/fx68kAlu.sv modules/cpu-fx68k/uaddrPla.sv"
 
-for top in h8300h h83002 ncv1_sub ncv1_main ygv608 c352 rom_cache shared_ram at28c16 clk_enables; do
+for top in h8300h h83002 ncv1_sub ncv1_main ygv608 c352 rom_cache shared_ram at28c16 clk_enables nc_reverb; do
     grep -q "^module $top\b" rtl/*.sv 2>/dev/null || continue
     echo "--- $top ---"
     verilator --lint-only $FLAGS --top-module $top $RTL $VENDOR
