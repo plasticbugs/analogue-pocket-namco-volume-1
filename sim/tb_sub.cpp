@@ -136,8 +136,9 @@ int main(int argc, char **argv) {
     top->eval();
     // if MAME took IRQ5 right at the start, present the pin now (CPU frozen) so the synchroniser sees it
     if (trace[0].irq && trace[0].irqnum == 5) { top->irq5_n = 0; for (int i = 0; i < 8; i++) tick(false); }
-    // let the synchronised IRQ5 pin reach the controller
+    // the vector is registered in h83002 and sampled again by the core on its enable: settle both
     for (int i = 0; i < 2; i++) tick(false);
+    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__irq_vector = r->ncv1_sub__DOT__mcu__DOT__irq_vector;
     top->eval();
 
     size_t ti = 0, ai = 0; long ninstr = 0, nacc = 0, nint = 0, clocks = 0;
@@ -237,9 +238,10 @@ int main(int argc, char **argv) {
         if (top->dbg_bus_rd && ba == 0xffffe8 && ai < accesses.size() && accesses[ai].dir == 'R' && accesses[ai].addr == 0xffffe8)
             r->ncv1_sub__DOT__mcu__DOT__adcsr = (r->ncv1_sub__DOT__mcu__DOT__adcsr & 0x7f) | (accesses[ai].data & 0x80);
 
-        if (cen) {
+        {   // every clock: the registered vector would latch a pending bit between enables
             uint64_t pend = r->ncv1_sub__DOT__mcu__DOT__pend;
             int want = next_vector();                            // >= 24: an ITU vector is due at this instruction
+            int present = -1;                                    // a vector this pass put in front of the core
             // while the CPU masks interrupts (CCR I) a pending one waits in both machines: not skew
             bool masked = (r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__ccr >> 7) & 1;
             for (int v = 24; v < 44; v++) {
@@ -250,12 +252,16 @@ int main(int argc, char **argv) {
                 case V_IDLE:
                     if (v == want) {
                         if (pend & bit) { n_exact++; vst[v] = V_TAKING; }
-                        else { pend |= bit; n_forced++; vage[v] = 0; vseen[v] = flag; vst[v] = V_RAISED; }
-                    } else if (pend & bit) { pend &= ~bit; vage[v] = 0; vst[v] = V_HELD; }        // RTL first: hold it back
+                        else { pend |= bit; present = v; n_forced++; vage[v] = 0; vseen[v] = flag; vst[v] = V_RAISED; }
+                    } else if (pend & bit) {                                                     // RTL first: hold it back
+                        pend &= ~bit; vage[v] = 0; vst[v] = V_HELD;
+                        if (r->ncv1_sub__DOT__mcu__DOT__irq_vector == v) r->ncv1_sub__DOT__mcu__DOT__irq_vector = 0;
+                        if (r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__irq_vector == v) r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__irq_vector = 0;
+                    }
                     break;
                 case V_HELD:
-                    if (v == want) { pend |= bit; n_held++; if (vage[v] > worst_held) worst_held = vage[v]; vst[v] = V_TAKING; }
-                    else if (!masked && ++vage[v] > IRQ_SKEW_MAX) { printf("FAIL: vector %d pending %ld states before MAME takes it (instr %ld)\n", v, vage[v], ninstr); fail = true; }
+                    if (v == want) { pend |= bit; present = v; n_held++; if (vage[v] > worst_held) worst_held = vage[v]; vst[v] = V_TAKING; }
+                    else if (!masked && (vage[v] += cen ? 1 : 0) > IRQ_SKEW_MAX) { printf("FAIL: vector %d pending %ld states before MAME takes it (instr %ld)\n", v, vage[v], ninstr); fail = true; }
                     break;
                 case V_TAKING:                                       // until the core has taken it
                     if (v != want) vst[v] = V_IDLE;
@@ -263,7 +269,7 @@ int main(int argc, char **argv) {
                 case V_RAISED:                                       // raised for MAME; the ITU's own event is still to come
                     if (!vseen[v]) {
                         if (flag) { vseen[v] = true; if (vage[v] > worst_forced) worst_forced = vage[v]; }
-                        else if (++vage[v] > IRQ_SKEW_MAX) { printf("FAIL: vector %d taken by MAME, the RTL's own event %ld states later still missing (instr %ld)\n", v, vage[v], ninstr); fail = true; }
+                        else if ((vage[v] += cen ? 1 : 0) > IRQ_SKEW_MAX) { printf("FAIL: vector %d taken by MAME, the RTL's own event %ld states later still missing (instr %ld)\n", v, vage[v], ninstr); fail = true; }
                     }
                     if (v != want) {                                 // taken
                         if (vseen[v]) vst[v] = V_IDLE;
@@ -272,11 +278,17 @@ int main(int argc, char **argv) {
                     break;
                 case V_DROP:                                         // taken before the ITU's own event: drop that copy
                     if (pend & bit) { pend &= ~bit; if (vage[v] > worst_forced) worst_forced = vage[v]; vst[v] = V_IDLE; }
-                    else if (++vage[v] > IRQ_SKEW_MAX) { printf("FAIL: vector %d taken by MAME, the RTL's own event never came (instr %ld)\n", v, ninstr); fail = true; }
+                    else if ((vage[v] += cen ? 1 : 0) > IRQ_SKEW_MAX) { printf("FAIL: vector %d taken by MAME, the RTL's own event never came (instr %ld)\n", v, ninstr); fail = true; }
                     break;
                 }
             }
             r->ncv1_sub__DOT__mcu__DOT__pend = pend;
+            if (present >= 0) {
+                // the vector is registered in h83002 and sampled by the core on its enable: a bit
+                // raised now would reach the core two states on, past a short instruction's end
+                r->ncv1_sub__DOT__mcu__DOT__irq_vector = (uint8_t)present;
+                r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__irq_vector = (uint8_t)present;
+            }
             if (fail) break;
         }
         tick(cen);

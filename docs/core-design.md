@@ -111,10 +111,13 @@ summing the RTL's states between MAME's timer interrupts (the ITU's period,
   `bsr d:16` are 10 states, `bsr d:8` and `jsr @ern` 8, `jsr @@aa:8` 12.
 * Interrupt entry was 2 states short: MAME has already prefetched (and
   discards) the opcode it is about to interrupt. Entry is now 14 states.
-* MAME takes an interrupt in the state its source raises it. The controller's
-  vector is therefore combinational into the core (which samples nothing: it
-  reads the vector where it decides), constrained as a multicycle path like
-  the rest of the core, and a TCNT write is staged one state (`h83002.sv`).
+* MAME takes an interrupt in the state its source raises it, and a store lands
+  about 3 states later in MAME than here (it prefetches before it writes).
+  This core's controller registers its vector and the core samples it, two
+  states. The two nearly cancel with a TCNT write staged one state
+  (`h83002.sv`). A combinational vector reproduced MAME's instruction in 68 of
+  69 interrupts, but the fitter's register retiming pulled that loop apart and
+  it missed timing by a nanosecond, so the vector stays registered.
 
 With those, the RTL's states between consecutive timer interrupts equal
 MAME's to within the width of the last instruction, in all four captures.
@@ -124,7 +127,7 @@ an instruction boundary moves the interrupt by one instruction, after which
 the two machines stack different state, so `sim/tb_sub.cpp` replays ITU
 interrupts at MAME's instruction (holding the pending bit back, or raising it
 and dropping the RTL's own copy) and fails if the RTL's own event is more than
-16 states from MAME's. Measured worst case: 7 states, 0.43 microseconds; the
+16 states from MAME's. Measured worst case: 8 states, 0.49 microseconds; the
 handler reloads the timer every period, so the skew does not accumulate.
 
 ### 3.3 YGV608
@@ -196,7 +199,7 @@ X = button 3, Start, Select = coin; Test/Service via the interact menu.
 | Block | State |
 |---|---|
 | H8/300H CPU (`rtl/h8300h.sv`) | trace replay PASS on four captures, Vol.1 and Vol.2 boot and gameplay (134k, 802k, 93k, 931k instructions), state-exact against MAME |
-| H8/3002 peripherals + decode (`rtl/h83002.sv`, `rtl/ncv1_sub.sv`) | the same four captures PASS with timers, INTC, ADC and ports modelled; every access exact, ITU interrupts within 7 states of MAME's (section 3.2) |
+| H8/3002 peripherals + decode (`rtl/h83002.sv`, `rtl/ncv1_sub.sv`) | the same four captures PASS with timers, INTC, ADC and ports modelled; every access exact, ITU interrupts within 8 states of MAME's (section 3.2) |
 | YGV608 (`rtl/ygv608*.sv`) | pixel-exact on 161 states (79 Vol.1, 78 Vol.2, 4 synthetic FLIP); worst line 3503/6210 clocks |
 | C352 (`rtl/c352.sv`) | 40 s replay within 0.3% RMS of MAME, all register reads exact (Vol.1's driver; the chip model has no per-game state) |
 | Memories (`target/pocket/ncv1_mem.sv`) | both 7.5 MB images load and read back through every port with the SDRAM chip model, the two character chips at their own addresses |
@@ -207,8 +210,8 @@ takes coins, navigates the menus and starts Galaga. The boot runs about 50
 frames behind MAME's timeline (under a second).
 
 Timing closed at 96 MHz for the Vol.1-only build (0.1.0, +0.24 ns worst
-setup). The combined build changes the H8's interrupt path (section 3.2) and
-adds a multicycle constraint for it; CI reports the new slack. No hardware run
+setup). The combined build releases the H8's reset on an enable and registers
+the H8's shared-RAM decode, both for timing; CI reports the slack. No hardware run
 yet: the instance-file packaging (three data slots) follows the Punch-Out!!
 and Atari System 2 cores, which load this way on a Pocket, but this core's
 slots have not been exercised on one.

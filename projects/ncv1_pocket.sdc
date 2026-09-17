@@ -69,13 +69,6 @@ set H8DIV [get_registers {*|h8300h:*|div_q[*] *|h8300h:*|div_rem[*]}]
 set H8RST [get_registers {*|ncv1_core:*|h8_reset}]
 set_multicycle_path -setup 5 -from $H8RST -to $H8CORE
 set_multicycle_path -hold  4 -from $H8RST -to $H8CORE
-# The interrupt controller's vector is combinational from the core's CCR (the mask
-# filter) back into the core. No register in h83002 is fed by the core's registers
-# directly (its bus comes from the per-clock wrapper), so a path from the core to a
-# register named under h83002 is a piece of that loop the fitter's register retiming moved
-# there, clocked on the core's enable like the register it came from.
-set_multicycle_path -setup 5 -from $H8CORE -to [get_registers {*|h83002:*|irq_vector*}]
-set_multicycle_path -hold  4 -from $H8CORE -to [get_registers {*|h83002:*|irq_vector*}]
 # the on-chip peripherals into the core: the core samples them on its enable
 set H8PERIPH [get_registers {*|h83002:*|*}]
 set_multicycle_path -setup 5 -from $H8PERIPH -to $H8CORE

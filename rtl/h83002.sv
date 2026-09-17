@@ -134,10 +134,10 @@ module h83002 (
     // before the write and charges the write's own states before performing it, so a
     // register changes about 3 states after this core writes it. Against that, MAME takes
     // an interrupt in the state the counter overflows while this core needs two more (the
-    // pending bit, the priority encoder, the core's sampled vector). The two nearly
-    // cancel, and staging a TCNT write by one state puts the ITU's interrupt on MAME's
-    // instruction in every interrupt of the four trace captures (sim/run_sub.sh), with
-    // reads forwarded from the staged bytes so nothing sees the old count.
+    // registered vector, the core's sampled copy). The two nearly cancel: with a TCNT
+    // write staged one state the ITU's interrupt lands within a few states of MAME's in
+    // the four trace captures (sim/run_sub.sh reports the skew), with reads forwarded from
+    // the staged bytes so nothing sees the old count.
     localparam int TCNT_WR_DELAY = 1;
     logic  [1:0] tw_be  [5];        // staged byte lanes
     logic [15:0] tw_val [5];
@@ -394,16 +394,17 @@ module h83002 (
         lowest = 7'd0;
         for (int v = 63; v >= 0; v--) if (m[v]) lowest = {1'b1, 6'(v)};
     endfunction
-    // Combinational, as MAME's update_irq_state is: the core can then take an interrupt in
-    // the same state the source raises it, which is what puts the ITU's interrupts on
-    // MAME's instruction (sim/run_sub.sh). The core samples this on its enable, once every
-    // 5-6 clocks, so projects/ncv1_pocket.sdc gives the path from the peripherals to the
-    // core the same multicycle as the core's own.
-    always_comb begin
+    // Registered: the core samples it on its enable, and the two-level priority encoder is
+    // too deep for one 96 MHz clock in front of the core's sequencer (a combinational
+    // vector was tried for MAME's same-state interrupt recognition; the fitter's register
+    // retiming pulled the loop apart and it missed timing by a nanosecond). The cost is one
+    // H8 state of interrupt latency, inside the skew sim/tb_sub.cpp bounds.
+    always_ff @(posedge clk) begin
         logic [6:0] hi, lo;
         hi = lowest(elig_hi);
         lo = lowest(elig_lo);
-        irq_vector = hi[6] ? {2'b00, hi[5:0]} : lo[6] ? {2'b00, lo[5:0]} : 8'd0;
+        if (reset) irq_vector <= 8'd0;
+        else irq_vector <= hi[6] ? {2'b00, hi[5:0]} : lo[6] ? {2'b00, lo[5:0]} : 8'd0;
     end
 
     // registered read data

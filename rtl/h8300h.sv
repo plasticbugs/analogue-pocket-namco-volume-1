@@ -72,6 +72,7 @@ module h8300h_core (
     logic  [4:0] step;
     logic        noirq;              // the next boundary must not take an interrupt
     logic  [7:0] cur_vec;
+    logic  [7:0] irq_vector;        // the controller's vector, sampled on the enable
 
     localparam F_C = 0, F_V = 1, F_Z = 2, F_N = 3, F_H = 5, F_I = 7;
 
@@ -688,10 +689,8 @@ module h8300h_core (
     // ------------------------------------------------------------ instruction boundary
     // p = the address of the next instruction (usually pc; a jump passes its target)
     task automatic finish(input logic [23:0] p);
-        // straight from the controller, not the sampled copy: MAME takes an interrupt in the
-        // state its source raises it (see rtl/h83002.sv's vector selection)
-        if (irq_vector_in != 8'd0 && !noirq) begin
-            cur_vec <= irq_vector_in; irq_ack_tog <= ~irq_ack_tog; irq_ack_vector <= irq_vector_in;
+        if (irq_vector != 8'd0 && !noirq) begin
+            cur_vec <= irq_vector; irq_ack_tog <= ~irq_ack_tog; irq_ack_vector <= irq_vector;
             irq_tog <= ~irq_tog; dbg_npc <= p;
             tmp2 <= {8'd0, p};
             pc <= p;
@@ -958,7 +957,7 @@ module h8300h_core (
     always_ff @(posedge clk) begin
         if (reset) begin
             state <= S_RESET0; step <= 5'd0; nw <= 3'd0; noirq <= 1'b0;
-            bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0;
+            bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0; irq_vector <= 8'd0;
             req_tog <= 1'b0; irq_ack_tog <= 1'b0; irq_ack_vector <= 8'd0; istart_tog <= 1'b0; irq_tog <= 1'b0;
             dv_tog <= 1'b0; dv_n <= 32'd0; dv_d <= 16'd0; dbg_pc <= 24'd0; dbg_npc <= 24'd0;
             div_signed <= 1'b0; div_neg_q <= 1'b0; div_neg_r <= 1'b0; div_wide <= 1'b0;
@@ -969,7 +968,7 @@ module h8300h_core (
             for (int i = 0; i < 5; i++) ir[i] <= 16'd0;
         end else if (cen) begin
             // inputs from the per-clock side, used from the next state on
-            bus_done <= bus_done_in; mdata <= mdata_in;
+            bus_done <= bus_done_in; mdata <= mdata_in; irq_vector <= irq_vector_in;
             case (state)
             S_BUS: begin
                 if (bus_done && bus_cnt) dispatch(ret_state, ret_step);
@@ -983,7 +982,7 @@ module h8300h_core (
             S_FETCH:  finish(pc);
             S_EXEC:   exec_step(step, ea);
             S_IRQ:    irq_step(step);
-            S_SLEEP:  begin if (irq_vector_in != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
+            S_SLEEP:  begin if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
             default:  state <= S_FETCH;
             endcase
         end

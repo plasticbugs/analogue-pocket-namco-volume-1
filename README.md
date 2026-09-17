@@ -19,7 +19,7 @@ runs both and the Pocket lists them by name.
 | Board part | Implementation | Verified by |
 |---|---|---|
 | 68000 @ 12.288 MHz | fx68k (cycle-accurate) | system bench |
-| H8/3002 @ 16.384 MHz | `rtl/h8300h.sv` + `rtl/h83002.sv`, written from MAME's `h8.lst` | trace replay of both sub programs: 1.9 million instructions of boot and gameplay in lockstep with MAME, every non-ROM access matched, timer interrupts within 7 CPU states of MAME's (`sim/run_sub.sh`) |
+| H8/3002 @ 16.384 MHz | `rtl/h8300h.sv` + `rtl/h83002.sv`, written from MAME's `h8.lst` | trace replay of both sub programs: 1.9 million instructions of boot and gameplay in lockstep with MAME, every non-ROM access matched, timer interrupts within 8 CPU states of MAME's (`sim/run_sub.sh`) |
 | Yamaha YGV608 VDP | `rtl/ygv608.sv`, `rtl/ygv608_render.sv` | pixel-exact on 157 frozen MAME states from both collections, across every video mode the games use, including rotation/zoom (`tools/regress_video.sh`) |
 | Namco C352 PCM | `rtl/c352.sv` | 40 s of MAME's register writes replayed, output within 0.3% of MAME's WAV (`sim/run_c352.sh`) |
 | AT28C16 EEPROM | `rtl/at28c16.sv`, saved per collection (`ncv1.sav`, `ncv2.sav`) | — |

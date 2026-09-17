@@ -125,6 +125,8 @@ int main(int argc, char **argv) {
         }
     };
     arm_irq_if_next();
+    // the core samples the vector on its enable; preset the sampled copy for an interrupt at the start
+    top->rootp->h8300h__DOT__core__DOT__irq_vector = top->irq_vector;
     top->eval();
     unsigned cen_acc = 0;             // the H8 enable as rtl/clk_enables.sv makes it: 16.384 of 96 MHz
     // H8_CYCLES=<file>: per executed instruction (and interrupt entry), the H8
