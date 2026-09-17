@@ -35,7 +35,8 @@ module ygv608 (
     // interrupts
     output logic        irq_vblank,
     output logic        irq_raster,
-    output logic        unsupported
+    output logic        unsupported,
+    output logic  [3:0] unsup_src       // {ROM DMA, ZRON, mosaic, render overrun}
 );
     // ------------------------------------------------------------ registers
     logic  [5:0] ytile_ptr, xtile_ptr;
@@ -462,6 +463,7 @@ module ygv608 (
     // ------------------------------------------------------------ renderer
     logic        rend_busy, rend_overrun;
     assign unsupported = unsupported_sticky | zron | (mosaic_a != 2'd0) | (mosaic_b != 2'd0) | rend_overrun;
+    assign unsup_src = {unsupported_sticky, zron, (mosaic_a != 2'd0) | (mosaic_b != 2'd0), rend_overrun};
     logic [15:0] rend_line_clocks, rend_max_clocks;
     logic  [9:0] lb_raddr;
     logic  [7:0] lb_q;

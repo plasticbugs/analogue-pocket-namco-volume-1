@@ -6,57 +6,52 @@
                 "type": "default",
                 "mappings": [
                     {
-                        "id": 120,
-                        "name": "Shot 2",
+                        "id": 140,
+                        "name": "Button 2",
                         "key": "pad_btn_b"
                     },
                     {
-                        "id": 121,
-                        "name": "Shot 1",
+                        "id": 141,
+                        "name": "Button 1",
                         "key": "pad_btn_a"
                     },
                     {
-                        "id": 122,
-                        "name": "Shot 2 (alt)",
+                        "id": 142,
+                        "name": "Button 3",
                         "key": "pad_btn_x"
                     },
                     {
-                        "id": 123,
-                        "name": "Shot 1 (alt)",
+                        "id": 143,
+                        "name": "Button 3 (alt)",
                         "key": "pad_btn_y"
                     },
                     {
-                        "id": 124,
-                        "name": "Shot 3",
-                        "key": "pad_trig_r"
-                    },
-                    {
-                        "id": 126,
+                        "id": 146,
                         "name": "Coin",
                         "key": "pad_btn_select"
                     },
                     {
-                        "id": 127,
+                        "id": 147,
                         "name": "Start",
                         "key": "pad_btn_start"
                     },
                     {
-                        "id": 128,
+                        "id": 148,
                         "name": "Up",
                         "key": "pad_dpad_up"
                     },
                     {
-                        "id": 129,
+                        "id": 149,
                         "name": "Down",
                         "key": "pad_dpad_down"
                     },
                     {
-                        "id": 130,
+                        "id": 150,
                         "name": "Left",
                         "key": "pad_dpad_left"
                     },
                     {
-                        "id": 131,
+                        "id": 151,
                         "name": "Right",
                         "key": "pad_dpad_right"
                     }

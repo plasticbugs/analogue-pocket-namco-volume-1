@@ -59,12 +59,22 @@ The H8 gets IRQ5 pulsed once per vblank while enabled through the cuskey. It
 handles inputs (reads the two ports, publishes to shared RAM), the C352 sound
 driver and the EEPROM-less bookkeeping the 68000 asks for via shared RAM.
 
-On-chip peripheral registers the sub program touches `[PROBE]` (partial, the
-tap crashed before the counts were written): ITU TSTR/TSNC (FFFF60/61),
-channel 0 TCR/TIOR/TIER/TSR/TCNT/GRA (FFFF64–FFFF6B), port DDR/DR at
-FFFFC5/C7/C9/CB/CD/CF/D1/D3/D5/D7, interrupt controller (FFFFF2–FFFFF8),
-FFFFEC/EE, FFFFF4 (SYSCR/MSTCR area), watchdog FFFFA8/AA? — to be completed
-from the instruction trace.
+On-chip peripherals the sub program uses `[PROBE][VERIFIED]` (from the
+trace-replay captures in `artifacts/h8*`, replayed by `sim/run_sub.sh`):
+
+| Block | Registers | Use |
+|---|---|---|
+| Interrupt controller | SYSCR FFFFF2 = 09, ISCR FFFFF4 = 20 (IRQ5 edge), IER FFFFF5 = 20, ISR FFFFF6, ICR FFFFF8/9 = 0 | IRQ5 (vector 17) from the vblank, 60 Hz |
+| ITU channel 0 | TSTR FFFF60 = 01, TCR0 FFFF64 = 83 (phi/8, no clear), TIER0 FFFF66 = FC (OVIE), TSR0 FFFF67, TCNT0 FFFF68 reloaded with BD55 each interrupt | overflow interrupt (vector 26) every 136,536 states = 120 Hz sound-driver tick |
+| Ports | DDR/DR of P4, P6, P8, P9, PA, PB; P7 and PA pins read 1 | outputs the board does not use; PA bit 0 toggled |
+| ADC | ADCSR FFFFE8 written 3B (scan, channels 0-3, CKS=1), ADF polled | the games have no analog inputs; the flag is polled once at boot |
+| Watchdog, SCI, DMA | written at reset, never used | registers read back |
+
+Timing model `[MAME]`: every 16-bit bus access is 2 states, internal operations
+n+1 states (`internal(n)`), one word of prefetch per instruction. The RTL
+matches MAME's per-instruction state counts closely enough that the timer
+interrupts land within a handful of instructions of MAME's over 800k
+instructions of gameplay.
 
 ## 4. YGV608 video `[MAME ygv608.cpp][PROBE]`
 
@@ -103,11 +113,13 @@ modes must be probed the same way (`tools/probe_ygv.lua`).
 
 ### 4.2 Timing
 
-MAME renders 288 x 224 from htotal 804/2 = 402 and vtotal 261 at 6.144 MHz
-(58.56 Hz). The real board measures 15.47 kHz / 59.96 Hz `[GURU]`, i.e. 258
-lines per frame and ~409.3 dot clocks per line at 25.326/4 = 6.3315 MHz, or
-equivalently 1637 crystal clocks per line. The chosen RTL timing is in
-`rtl/ygv608_crtc.sv` and this section will be updated when it is fixed.
+MAME's screen is 402 x 261 at 6.144 MHz (58.56 Hz) until the game programs the
+CRTC in frame 41; from then on MAME runs 264 x 384 dot clocks per frame
+(60.6 Hz). The real board measures 15.47 kHz / 59.96 Hz `[GURU]`, i.e. 258
+lines per frame and ~409.3 dot clocks per line at 25.326/4 = 6.3315 MHz. The
+core (docs/core-design.md §4) runs 414 x 258 at 6.4 MHz: 15.459 kHz, 59.92 Hz,
+with the vblank interrupt at the start of line 250 (the first line after the
+224 visible ones).
 
 ### 4.3 Pattern name table (mode MD=2, 64x32 page, 8x8) `[MAME]`
 
@@ -173,6 +185,7 @@ The user's set carries the older `nc1cg0.10c`; the builder accepts both CRCs.
 
 ## 7. Open questions
 
-- Exact YGV608 line/frame timing (no datasheet found yet).
-- Which H8 peripherals matter (ITU channel 0 as the sound tick? SCI unused?).
-- EEPROM contents needed for first boot (MAME boots with a blank one).
+- Exact YGV608 line/frame timing: no datasheet found; the core uses the
+  board's measured rate (§4.2).
+- EEPROM contents for first boot: MAME boots with a blank one and the game
+  initialises it; the Pocket's empty save slot does the same.

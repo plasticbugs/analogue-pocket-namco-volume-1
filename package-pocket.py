@@ -33,7 +33,7 @@ with open(os.path.join(core_dir, "bitstream.rbf_r"), "wb") as f:
     f.write(reversed_rbf)
 
 # Ship the ROM recipe and its builder alongside the core, so a downloaded
-# release contains everything needed to produce gaia.rom.
+# release contains everything needed to produce ncv1.rom.
 for extra in ("ncv1.mra", "README.md", os.path.join("tools", "mra_build.py")):
     src = os.path.join(ROOT, extra)
     if os.path.exists(src):
@@ -47,4 +47,4 @@ if strays:
 
 print(f"packaged -> {OUT}")
 print("copy Cores/, Platforms/ and Assets/ from that folder onto the SD card root")
-print("build the ROM with:  python3 mra_build.py gaia.mra gaia.zip")
+print("build the ROM with:  python3 mra_build.py ncv1.mra ncv1.zip")

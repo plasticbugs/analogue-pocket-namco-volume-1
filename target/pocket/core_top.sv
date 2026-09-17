@@ -429,13 +429,14 @@ module core_top
     wire [15:0] ga_snd_l, ga_snd_r;
     wire        ga_snd_valid;
     wire        dbg_68k_halted, dbg_h8_run, dbg_h8_istart, dbg_h8_irq, dbg_vunsup;
+    wire  [3:0] dbg_vunsup_src;
     wire [23:1] dbg_68k_addr; wire [23:0] dbg_h8_pc; wire [1:0] dbg_gfxbank;
     // the clock after clk_vid's edge is seen in the clk_sys domain
     reg vt = 1'b0, vt_s, vt_d;
     always @(posedge clk_vid) vt <= ~vt;
     always @(posedge clk_sys) begin vt_s <= vt; vt_d <= vt_s; end
     wire pix_sync = vt_s ^ vt_d;
-    ncv1_core ga (
+    ncv1_core #(.HEXDIR("../rtl/data")) ga (
         .clk(clk_sys), .reset(core_reset), .pix_sync(pix_sync),
         .prog_addr(prog_addr), .prog_req(prog_req), .prog_ack(prog_ack), .prog_q(prog_q),
         .sub_addr(sub_addr), .sub_req(sub_req), .sub_ack(sub_ack), .sub_q(sub_q),
@@ -447,7 +448,7 @@ module core_top
         .cen_pix(ga_cen_pix), .hsync(ga_hs), .vsync(ga_vs), .hblank(ga_hb), .vblank(ga_vb), .de(ga_de), .rgb(ga_rgb),
         .snd_l(ga_snd_l), .snd_r(ga_snd_r), .snd_valid(ga_snd_valid),
         .dbg_68k_halted(dbg_68k_halted), .dbg_68k_addr(dbg_68k_addr), .dbg_h8_run(dbg_h8_run), .dbg_h8_pc(dbg_h8_pc),
-        .dbg_h8_istart(dbg_h8_istart), .dbg_h8_irq(dbg_h8_irq), .dbg_video_unsupported(dbg_vunsup), .dbg_gfxbank(dbg_gfxbank)
+        .dbg_h8_istart(dbg_h8_istart), .dbg_h8_irq(dbg_h8_irq), .dbg_video_unsupported(dbg_vunsup), .dbg_video_unsup_src(dbg_vunsup_src), .dbg_gfxbank(dbg_gfxbank)
     );
     wire _unused_top = &{1'b0, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
                          dip_sw0, dip_sw1, dip_sw2, dip_sw3, mod_sw2, mod_sw3, status, clk_unused1, dataslot_requestread,
@@ -487,7 +488,8 @@ module core_top
     wire [95:0] ovl_status = {
         ovl_frames, pll_locked_sys, mem_ready, ioctl_download, allc_s, loaded_s, core_reset, dl_busy, 1'b0,
         dbg_68k_halted, dbg_h8_run, ovl_seen_h8, ovl_seen_irq, ovl_seen_snd, ovl_unsup_l, 2'b00,
-        dbg_68k_addr[23:8], 16'd0,
+        dbg_vunsup_src, 4'd0,
+        dbg_68k_addr[23:8], 8'd0,
         dbg_h8_pc[23:8], 16'd0
     };
     wire [7:0] ovl_r, ovl_g, ovl_b;

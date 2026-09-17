@@ -113,12 +113,12 @@ module h8300h (
     } grp_t;
     // operations (ALU and bit ops)
     typedef enum logic [5:0] {
-        OP_ADD, OP_ADDX, OP_SUB, OP_SUBX, OP_CMP, OP_AND, OP_OR, OP_XOR, OP_MOV, OP_INC, OP_DEC,
-        OP_ADDS, OP_SUBS, OP_NEG, OP_NOT, OP_EXTU, OP_EXTS, OP_SHLL, OP_SHLR, OP_SHAL, OP_SHAR,
-        OP_ROTL, OP_ROTR, OP_ROTXL, OP_ROTXR, OP_DAA, OP_DAS, OP_MULXU, OP_DIVXU, OP_MULXS, OP_DIVXS,
-        OP_LDC, OP_STC, OP_ANDC, OP_ORC, OP_XORC,
-        OP_BSET, OP_BNOT, OP_BCLR, OP_BTST, OP_BOR, OP_BIOR, OP_BXOR, OP_BIXOR, OP_BAND, OP_BIAND,
-        OP_BLD, OP_BILD, OP_BST, OP_BIST, OP_NONE
+        HO_ADD, HO_ADDX, HO_SUB, HO_SUBX, HO_CMP, HO_AND, HO_OR, HO_XOR, HO_MOV, HO_INC, HO_DEC,
+        HO_ADDS, HO_SUBS, HO_NEG, HO_NOT, HO_EXTU, HO_EXTS, HO_SHLL, HO_SHLR, HO_SHAL, HO_SHAR,
+        HO_ROTL, HO_ROTR, HO_ROTXL, HO_ROTXR, HO_DAA, HO_DAS, HO_MULXU, HO_DIVXU, HO_MULXS, HO_DIVXS,
+        HO_LDC, HO_STC, HO_ANDC, HO_ORC, HO_XORC,
+        HO_BSET, HO_BNOT, HO_BCLR, HO_BTST, HO_BOR, HO_BIOR, HO_BXOR, HO_BIXOR, HO_BAND, HO_BIAND,
+        HO_BLD, HO_BILD, HO_BST, HO_BIST, HO_NONE
     } op_t;
     // effective-address modes
     typedef enum logic [3:0] {
@@ -174,7 +174,7 @@ module h8300h (
     function automatic logic [31:0] sx16(input logic [15:0] v); sx16 = {{16{v[15]}}, v}; endfunction
 
     always_comb begin
-        d_grp = G_ILL; d_op = OP_NONE; d_sz = 2'd0; d_rd = 4'd0; d_rs = 4'd0; d_imm = 1'b0;
+        d_grp = G_ILL; d_op = HO_NONE; d_sz = 2'd0; d_rd = 4'd0; d_rs = 4'd0; d_imm = 1'b0;
         d_ival = 32'd0; d_ea = EA_NONE; d_rea = 3'd0; d_cc = 4'd0; d_bit = 3'd0; d_bitreg = 1'b0;
         d_extra = 5'd0;
         case (b0[7:4])
@@ -210,13 +210,13 @@ module h8300h (
                 end
                 4'h8: d_grp = G_SLEEP;
                 4'hc: begin // mulxs
-                    d_grp = G_ALU; d_op = OP_MULXS;
+                    d_grp = G_ALU; d_op = HO_MULXS;
                     if (ir1[15:8] == 8'h50) begin d_sz = 2'd0; d_rs = ir1[7:4]; d_rd = ir1[3:0]; d_extra = 5'd12; end
                     else if (ir1[15:8] == 8'h52) begin d_sz = 2'd1; d_rs = ir1[7:4]; d_rd = {1'b0, ir1[2:0]}; d_extra = 5'd20; end
                     else d_grp = G_ILL;
                 end
                 4'hd: begin // divxs
-                    d_grp = G_ALU; d_op = OP_DIVXS;
+                    d_grp = G_ALU; d_op = HO_DIVXS;
                     if (ir1[15:8] == 8'h51) begin d_sz = 2'd0; d_rs = ir1[7:4]; d_rd = ir1[3:0]; d_extra = 5'd12; end
                     else if (ir1[15:8] == 8'h53) begin d_sz = 2'd1; d_rs = ir1[7:4]; d_rd = {1'b0, ir1[2:0]}; d_extra = 5'd20; end
                     else d_grp = G_ILL;
@@ -224,42 +224,42 @@ module h8300h (
                 4'hf: begin // or.l/xor.l/and.l rs,rd
                     d_grp = G_ALU; d_sz = 2'd2; d_rs = {1'b0, ir1[6:4]}; d_rd = {1'b0, ir1[2:0]};
                     case (ir1[15:8])
-                    8'h64: d_op = OP_OR; 8'h65: d_op = OP_XOR; 8'h66: d_op = OP_AND;
+                    8'h64: d_op = HO_OR; 8'h65: d_op = HO_XOR; 8'h66: d_op = HO_AND;
                     default: d_grp = G_ILL;
                     endcase
                 end
                 default: d_grp = G_ILL;
                 endcase
             end
-            4'h2: begin d_grp = G_ALU; d_op = OP_STC; d_sz = 2'd0; d_rd = b1[3:0]; end
-            4'h3: begin d_grp = G_ALU; d_op = OP_LDC; d_sz = 2'd0; d_rs = b1[3:0]; end
-            4'h4: begin d_grp = G_ALU; d_op = OP_ORC;  d_imm = 1'b1; d_ival = {24'd0, b1}; end
-            4'h5: begin d_grp = G_ALU; d_op = OP_XORC; d_imm = 1'b1; d_ival = {24'd0, b1}; end
-            4'h6: begin d_grp = G_ALU; d_op = OP_ANDC; d_imm = 1'b1; d_ival = {24'd0, b1}; end
-            4'h7: begin d_grp = G_ALU; d_op = OP_LDC;  d_imm = 1'b1; d_ival = {24'd0, b1}; end
-            4'h8: begin d_grp = G_ALU; d_op = OP_ADD; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h9: begin d_grp = G_ALU; d_op = OP_ADD; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h2: begin d_grp = G_ALU; d_op = HO_STC; d_sz = 2'd0; d_rd = b1[3:0]; end
+            4'h3: begin d_grp = G_ALU; d_op = HO_LDC; d_sz = 2'd0; d_rs = b1[3:0]; end
+            4'h4: begin d_grp = G_ALU; d_op = HO_ORC;  d_imm = 1'b1; d_ival = {24'd0, b1}; end
+            4'h5: begin d_grp = G_ALU; d_op = HO_XORC; d_imm = 1'b1; d_ival = {24'd0, b1}; end
+            4'h6: begin d_grp = G_ALU; d_op = HO_ANDC; d_imm = 1'b1; d_ival = {24'd0, b1}; end
+            4'h7: begin d_grp = G_ALU; d_op = HO_LDC;  d_imm = 1'b1; d_ival = {24'd0, b1}; end
+            4'h8: begin d_grp = G_ALU; d_op = HO_ADD; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h9: begin d_grp = G_ALU; d_op = HO_ADD; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
             4'ha: begin d_grp = G_ALU;
-                if (b1[7]) begin d_op = OP_ADD; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
-                else if (b1[7:4] == 4'h0) begin d_op = OP_INC; d_sz = 2'd0; d_rd = b1[3:0]; d_ival = 32'd1; d_imm = 1'b1; end
+                if (b1[7]) begin d_op = HO_ADD; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
+                else if (b1[7:4] == 4'h0) begin d_op = HO_INC; d_sz = 2'd0; d_rd = b1[3:0]; d_ival = 32'd1; d_imm = 1'b1; end
                 else d_grp = G_ILL; end
             4'hb: begin d_grp = G_ALU; d_imm = 1'b1;
                 case (b1[7:4])
-                4'h0: begin d_op = OP_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
-                4'h5: begin d_op = OP_INC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd1; end
-                4'h7: begin d_op = OP_INC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
-                4'h8: begin d_op = OP_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
-                4'h9: begin d_op = OP_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd4; end
-                4'hd: begin d_op = OP_INC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd2; end
-                4'hf: begin d_op = OP_INC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
+                4'h0: begin d_op = HO_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
+                4'h5: begin d_op = HO_INC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd1; end
+                4'h7: begin d_op = HO_INC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
+                4'h8: begin d_op = HO_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
+                4'h9: begin d_op = HO_ADDS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd4; end
+                4'hd: begin d_op = HO_INC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd2; end
+                4'hf: begin d_op = HO_INC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
                 default: d_grp = G_ILL;
                 endcase end
-            4'hc: begin d_grp = G_ALU; d_op = OP_MOV; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'hd: begin d_grp = G_ALU; d_op = OP_MOV; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'he: begin d_grp = G_ALU; d_op = OP_ADDX; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'hc: begin d_grp = G_ALU; d_op = HO_MOV; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'hd: begin d_grp = G_ALU; d_op = HO_MOV; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'he: begin d_grp = G_ALU; d_op = HO_ADDX; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
             4'hf: begin d_grp = G_ALU;
-                if (b1[7]) begin d_op = OP_MOV; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
-                else if (b1[7:4] == 4'h0) begin d_op = OP_DAA; d_sz = 2'd0; d_rd = b1[3:0]; end
+                if (b1[7]) begin d_op = HO_MOV; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
+                else if (b1[7:4] == 4'h0) begin d_op = HO_DAA; d_sz = 2'd0; d_rd = b1[3:0]; end
                 else d_grp = G_ILL; end
             endcase
         4'h1: case (b0[3:0])
@@ -272,62 +272,62 @@ module h8300h (
                 endcase
                 d_rd = (d_sz == 2'd2) ? {1'b0, b1[2:0]} : b1[3:0];
                 case ({b0[1:0], b1[7]})
-                3'b000: d_op = OP_SHLL; 3'b001: d_op = OP_SHAL;
-                3'b010: d_op = OP_SHLR; 3'b011: d_op = OP_SHAR;
-                3'b100: d_op = OP_ROTXL; 3'b101: d_op = OP_ROTL;
-                3'b110: d_op = OP_ROTXR; 3'b111: d_op = OP_ROTR;
+                3'b000: d_op = HO_SHLL; 3'b001: d_op = HO_SHAL;
+                3'b010: d_op = HO_SHLR; 3'b011: d_op = HO_SHAR;
+                3'b100: d_op = HO_ROTXL; 3'b101: d_op = HO_ROTL;
+                3'b110: d_op = HO_ROTXR; 3'b111: d_op = HO_ROTR;
                 endcase
             end
-            4'h4: begin d_grp = G_ALU; d_op = OP_OR;  d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h5: begin d_grp = G_ALU; d_op = OP_XOR; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h6: begin d_grp = G_ALU; d_op = OP_AND; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h4: begin d_grp = G_ALU; d_op = HO_OR;  d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h5: begin d_grp = G_ALU; d_op = HO_XOR; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h6: begin d_grp = G_ALU; d_op = HO_AND; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
             4'h7: begin d_grp = G_ALU;
                 case (b1[7:4])
-                4'h0: begin d_op = OP_NOT;  d_sz = 2'd0; d_rd = b1[3:0]; end
-                4'h1: begin d_op = OP_NOT;  d_sz = 2'd1; d_rd = b1[3:0]; end
-                4'h3: begin d_op = OP_NOT;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
-                4'h5: begin d_op = OP_EXTU; d_sz = 2'd1; d_rd = b1[3:0]; end
-                4'h7: begin d_op = OP_EXTU; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
-                4'h8: begin d_op = OP_NEG;  d_sz = 2'd0; d_rd = b1[3:0]; end
-                4'h9: begin d_op = OP_NEG;  d_sz = 2'd1; d_rd = b1[3:0]; end
-                4'hb: begin d_op = OP_NEG;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
-                4'hd: begin d_op = OP_EXTS; d_sz = 2'd1; d_rd = b1[3:0]; end
-                4'hf: begin d_op = OP_EXTS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
+                4'h0: begin d_op = HO_NOT;  d_sz = 2'd0; d_rd = b1[3:0]; end
+                4'h1: begin d_op = HO_NOT;  d_sz = 2'd1; d_rd = b1[3:0]; end
+                4'h3: begin d_op = HO_NOT;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
+                4'h5: begin d_op = HO_EXTU; d_sz = 2'd1; d_rd = b1[3:0]; end
+                4'h7: begin d_op = HO_EXTU; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
+                4'h8: begin d_op = HO_NEG;  d_sz = 2'd0; d_rd = b1[3:0]; end
+                4'h9: begin d_op = HO_NEG;  d_sz = 2'd1; d_rd = b1[3:0]; end
+                4'hb: begin d_op = HO_NEG;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
+                4'hd: begin d_op = HO_EXTS; d_sz = 2'd1; d_rd = b1[3:0]; end
+                4'hf: begin d_op = HO_EXTS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; end
                 default: d_grp = G_ILL;
                 endcase end
-            4'h8: begin d_grp = G_ALU; d_op = OP_SUB; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h9: begin d_grp = G_ALU; d_op = OP_SUB; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h8: begin d_grp = G_ALU; d_op = HO_SUB; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h9: begin d_grp = G_ALU; d_op = HO_SUB; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
             4'ha: begin d_grp = G_ALU;
-                if (b1[7]) begin d_op = OP_SUB; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
-                else if (b1[7:4] == 4'h0) begin d_op = OP_DEC; d_sz = 2'd0; d_rd = b1[3:0]; d_ival = 32'd1; d_imm = 1'b1; end
+                if (b1[7]) begin d_op = HO_SUB; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
+                else if (b1[7:4] == 4'h0) begin d_op = HO_DEC; d_sz = 2'd0; d_rd = b1[3:0]; d_ival = 32'd1; d_imm = 1'b1; end
                 else d_grp = G_ILL; end
             4'hb: begin d_grp = G_ALU; d_imm = 1'b1;
                 case (b1[7:4])
-                4'h0: begin d_op = OP_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
-                4'h5: begin d_op = OP_DEC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd1; end
-                4'h7: begin d_op = OP_DEC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
-                4'h8: begin d_op = OP_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
-                4'h9: begin d_op = OP_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd4; end
-                4'hd: begin d_op = OP_DEC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd2; end
-                4'hf: begin d_op = OP_DEC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
+                4'h0: begin d_op = HO_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
+                4'h5: begin d_op = HO_DEC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd1; end
+                4'h7: begin d_op = HO_DEC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd1; end
+                4'h8: begin d_op = HO_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
+                4'h9: begin d_op = HO_SUBS; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd4; end
+                4'hd: begin d_op = HO_DEC;  d_sz = 2'd1; d_rd = b1[3:0]; d_ival = 32'd2; end
+                4'hf: begin d_op = HO_DEC;  d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_ival = 32'd2; end
                 default: d_grp = G_ILL;
                 endcase end
-            4'hc: begin d_grp = G_ALU; d_op = OP_CMP; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'hd: begin d_grp = G_ALU; d_op = OP_CMP; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'he: begin d_grp = G_ALU; d_op = OP_SUBX; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'hc: begin d_grp = G_ALU; d_op = HO_CMP; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'hd: begin d_grp = G_ALU; d_op = HO_CMP; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'he: begin d_grp = G_ALU; d_op = HO_SUBX; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; end
             4'hf: begin d_grp = G_ALU;
-                if (b1[7]) begin d_op = OP_CMP; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
-                else if (b1[7:4] == 4'h0) begin d_op = OP_DAS; d_sz = 2'd0; d_rd = b1[3:0]; end
+                if (b1[7]) begin d_op = HO_CMP; d_sz = 2'd2; d_rs = {1'b0, b1[6:4]}; d_rd = {1'b0, b1[2:0]}; end
+                else if (b1[7:4] == 4'h0) begin d_op = HO_DAS; d_sz = 2'd0; d_rd = b1[3:0]; end
                 else d_grp = G_ILL; end
             endcase
         4'h2: begin d_grp = G_LOAD;  d_sz = 2'd0; d_rd = b0[3:0]; d_ea = EA_ABS8; d_ival = {24'hffffff, b1}; end
         4'h3: begin d_grp = G_STORE; d_sz = 2'd0; d_rd = b0[3:0]; d_ea = EA_ABS8; d_ival = {24'hffffff, b1}; end
         4'h4: begin d_grp = G_BCC; d_cc = b0[3:0]; d_ival = {{24{b1[7]}}, b1}; end
         4'h5: case (b0[3:0])
-            4'h0: begin d_grp = G_ALU; d_op = OP_MULXU; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_extra = 5'd12; end
-            4'h1: begin d_grp = G_ALU; d_op = OP_DIVXU; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_extra = 5'd12; end
-            4'h2: begin d_grp = G_ALU; d_op = OP_MULXU; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = {1'b0, b1[2:0]}; d_extra = 5'd20; end
-            4'h3: begin d_grp = G_ALU; d_op = OP_DIVXU; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = {1'b0, b1[2:0]}; d_extra = 5'd12; end
+            4'h0: begin d_grp = G_ALU; d_op = HO_MULXU; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_extra = 5'd12; end
+            4'h1: begin d_grp = G_ALU; d_op = HO_DIVXU; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_extra = 5'd12; end
+            4'h2: begin d_grp = G_ALU; d_op = HO_MULXU; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = {1'b0, b1[2:0]}; d_extra = 5'd20; end
+            4'h3: begin d_grp = G_ALU; d_op = HO_DIVXU; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = {1'b0, b1[2:0]}; d_extra = 5'd12; end
             4'h4: d_grp = (b1 == 8'h70) ? G_RTS : G_ILL;
             4'h5: begin d_grp = G_BSR; d_ival = {{24{b1[7]}}, b1}; end
             4'h6: d_grp = (b1 == 8'h70) ? G_RTE : G_ILL;
@@ -342,14 +342,14 @@ module h8300h (
             4'hf: begin d_grp = G_JSR; d_ea = EA_IND8; d_ival = {24'd0, b1}; end
             endcase
         4'h6: case (b0[3:0])
-            4'h0: begin d_grp = G_ALU; d_op = OP_BSET; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
-            4'h1: begin d_grp = G_ALU; d_op = OP_BNOT; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
-            4'h2: begin d_grp = G_ALU; d_op = OP_BCLR; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
-            4'h3: begin d_grp = G_ALU; d_op = OP_BTST; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
-            4'h4: begin d_grp = G_ALU; d_op = OP_OR;  d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h5: begin d_grp = G_ALU; d_op = OP_XOR; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h6: begin d_grp = G_ALU; d_op = OP_AND; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
-            4'h7: begin d_grp = G_ALU; d_op = b1[7] ? OP_BIST : OP_BST; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h0: begin d_grp = G_ALU; d_op = HO_BSET; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
+            4'h1: begin d_grp = G_ALU; d_op = HO_BNOT; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
+            4'h2: begin d_grp = G_ALU; d_op = HO_BCLR; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
+            4'h3: begin d_grp = G_ALU; d_op = HO_BTST; d_sz = 2'd0; d_rs = b1[7:4]; d_rd = b1[3:0]; d_bitreg = 1'b1; end
+            4'h4: begin d_grp = G_ALU; d_op = HO_OR;  d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h5: begin d_grp = G_ALU; d_op = HO_XOR; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h6: begin d_grp = G_ALU; d_op = HO_AND; d_sz = 2'd1; d_rs = b1[7:4]; d_rd = b1[3:0]; end
+            4'h7: begin d_grp = G_ALU; d_op = b1[7] ? HO_BIST : HO_BST; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
             4'h8: begin d_grp = b1[7] ? G_STORE : G_LOAD; d_sz = 2'd0; d_ea = EA_IND; d_rea = b1[6:4]; d_rd = b1[3:0]; end
             4'h9: begin d_grp = b1[7] ? G_STORE : G_LOAD; d_sz = 2'd1; d_ea = EA_IND; d_rea = b1[6:4]; d_rd = b1[3:0]; end
             4'ha: begin d_sz = 2'd0; d_rd = b1[3:0];
@@ -376,14 +376,14 @@ module h8300h (
             4'hf: begin d_grp = b1[7] ? G_STORE : G_LOAD; d_sz = 2'd1; d_ea = EA_D16; d_rea = b1[6:4]; d_rd = b1[3:0]; d_ival = sx16(ir1); end
             endcase
         4'h7: case (b0[3:0])
-            4'h0: begin d_grp = G_ALU; d_op = OP_BSET; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h1: begin d_grp = G_ALU; d_op = OP_BNOT; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h2: begin d_grp = G_ALU; d_op = OP_BCLR; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h3: begin d_grp = G_ALU; d_op = OP_BTST; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h4: begin d_grp = G_ALU; d_op = b1[7] ? OP_BIOR  : OP_BOR;  d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h5: begin d_grp = G_ALU; d_op = b1[7] ? OP_BIXOR : OP_BXOR; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h6: begin d_grp = G_ALU; d_op = b1[7] ? OP_BIAND : OP_BAND; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
-            4'h7: begin d_grp = G_ALU; d_op = b1[7] ? OP_BILD  : OP_BLD;  d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h0: begin d_grp = G_ALU; d_op = HO_BSET; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h1: begin d_grp = G_ALU; d_op = HO_BNOT; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h2: begin d_grp = G_ALU; d_op = HO_BCLR; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h3: begin d_grp = G_ALU; d_op = HO_BTST; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h4: begin d_grp = G_ALU; d_op = b1[7] ? HO_BIOR  : HO_BOR;  d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h5: begin d_grp = G_ALU; d_op = b1[7] ? HO_BIXOR : HO_BXOR; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h6: begin d_grp = G_ALU; d_op = b1[7] ? HO_BIAND : HO_BAND; d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
+            4'h7: begin d_grp = G_ALU; d_op = b1[7] ? HO_BILD  : HO_BLD;  d_sz = 2'd0; d_rd = b1[3:0]; d_bit = b1[6:4]; end
             4'h8: begin // @(d24,ERn) byte/word moves: 78 r0 6A/6B 2d/Ad, disp in ir2:ir3
                 d_ea = EA_D24; d_rea = b1[6:4]; d_ival = {ir2, ir3}; d_rd = ir1[3:0];
                 d_sz = ir1[8] ? 2'd1 : 2'd0;
@@ -392,14 +392,14 @@ module h8300h (
             end
             4'h9: begin d_grp = G_ALU; d_sz = 2'd1; d_rd = b1[3:0]; d_imm = 1'b1; d_ival = {16'd0, ir1};
                 case (b1[7:4])
-                4'h0: d_op = OP_MOV; 4'h1: d_op = OP_ADD; 4'h2: d_op = OP_CMP; 4'h3: d_op = OP_SUB;
-                4'h4: d_op = OP_OR;  4'h5: d_op = OP_XOR; 4'h6: d_op = OP_AND;
+                4'h0: d_op = HO_MOV; 4'h1: d_op = HO_ADD; 4'h2: d_op = HO_CMP; 4'h3: d_op = HO_SUB;
+                4'h4: d_op = HO_OR;  4'h5: d_op = HO_XOR; 4'h6: d_op = HO_AND;
                 default: d_grp = G_ILL;
                 endcase end
             4'ha: begin d_grp = G_ALU; d_sz = 2'd2; d_rd = {1'b0, b1[2:0]}; d_imm = 1'b1; d_ival = {ir1, ir2};
                 case (b1[7:4])
-                4'h0: d_op = OP_MOV; 4'h1: d_op = OP_ADD; 4'h2: d_op = OP_CMP; 4'h3: d_op = OP_SUB;
-                4'h4: d_op = OP_OR;  4'h5: d_op = OP_XOR; 4'h6: d_op = OP_AND;
+                4'h0: d_op = HO_MOV; 4'h1: d_op = HO_ADD; 4'h2: d_op = HO_CMP; 4'h3: d_op = HO_SUB;
+                4'h4: d_op = HO_OR;  4'h5: d_op = HO_XOR; 4'h6: d_op = HO_AND;
                 default: d_grp = G_ILL;
                 endcase end
             4'hb: begin
@@ -413,16 +413,16 @@ module h8300h (
                 else begin d_ea = EA_IND; d_rea = b1[6:4]; end
                 d_bit = ir1[6:4]; d_rs = ir1[7:4];
                 case (ir1[15:8])
-                8'h60: begin d_op = OP_BSET; d_bitreg = 1'b1; end
-                8'h61: begin d_op = OP_BNOT; d_bitreg = 1'b1; end
-                8'h62: begin d_op = OP_BCLR; d_bitreg = 1'b1; end
-                8'h63: begin d_op = OP_BTST; d_bitreg = 1'b1; end
-                8'h67: d_op = ir1[7] ? OP_BIST : OP_BST;
-                8'h70: d_op = OP_BSET; 8'h71: d_op = OP_BNOT; 8'h72: d_op = OP_BCLR; 8'h73: d_op = OP_BTST;
-                8'h74: d_op = ir1[7] ? OP_BIOR  : OP_BOR;
-                8'h75: d_op = ir1[7] ? OP_BIXOR : OP_BXOR;
-                8'h76: d_op = ir1[7] ? OP_BIAND : OP_BAND;
-                8'h77: d_op = ir1[7] ? OP_BILD  : OP_BLD;
+                8'h60: begin d_op = HO_BSET; d_bitreg = 1'b1; end
+                8'h61: begin d_op = HO_BNOT; d_bitreg = 1'b1; end
+                8'h62: begin d_op = HO_BCLR; d_bitreg = 1'b1; end
+                8'h63: begin d_op = HO_BTST; d_bitreg = 1'b1; end
+                8'h67: d_op = ir1[7] ? HO_BIST : HO_BST;
+                8'h70: d_op = HO_BSET; 8'h71: d_op = HO_BNOT; 8'h72: d_op = HO_BCLR; 8'h73: d_op = HO_BTST;
+                8'h74: d_op = ir1[7] ? HO_BIOR  : HO_BOR;
+                8'h75: d_op = ir1[7] ? HO_BIXOR : HO_BXOR;
+                8'h76: d_op = ir1[7] ? HO_BIAND : HO_BAND;
+                8'h77: d_op = ir1[7] ? HO_BILD  : HO_BLD;
                 default: d_grp = G_ILL;
                 endcase
             end
@@ -430,9 +430,9 @@ module h8300h (
         default: begin // 8x-Fx: imm8 ops on r8 (register in b0[3:0])
             d_grp = G_ALU; d_sz = 2'd0; d_rd = b0[3:0]; d_imm = 1'b1; d_ival = {24'd0, b1};
             case (b0[7:4])
-            4'h8: d_op = OP_ADD;  4'h9: d_op = OP_ADDX; 4'ha: d_op = OP_CMP; 4'hb: d_op = OP_SUBX;
-            4'hc: d_op = OP_OR;   4'hd: d_op = OP_XOR;  4'he: d_op = OP_AND; 4'hf: d_op = OP_MOV;
-            default: d_op = OP_NONE;
+            4'h8: d_op = HO_ADD;  4'h9: d_op = HO_ADDX; 4'ha: d_op = HO_CMP; 4'hb: d_op = HO_SUBX;
+            4'hc: d_op = HO_OR;   4'hd: d_op = HO_XOR;  4'he: d_op = HO_AND; 4'hf: d_op = HO_MOV;
+            default: d_op = HO_NONE;
             endcase
         end
         endcase
@@ -440,7 +440,7 @@ module h8300h (
 
     // whether a bit-op / bit-mem op writes its result back
     function automatic logic bit_writes(input op_t o);
-        bit_writes = (o == OP_BSET || o == OP_BNOT || o == OP_BCLR || o == OP_BST || o == OP_BIST);
+        bit_writes = (o == HO_BSET || o == HO_BNOT || o == HO_BCLR || o == HO_BST || o == HO_BIST);
     endfunction
 
     // ------------------------------------------------------------ ALU
@@ -478,60 +478,60 @@ module h8300h (
         d8 = 8'd0; byteval = a[7:0];
         mul16 = 16'd0; mul32 = 32'd0;
         case (alu_op)
-        OP_ADD, OP_ADDX, OP_INC, OP_ADDS: begin
-            cin = (alu_op == OP_ADDX) ? ccr[F_C] : 1'b0;
+        HO_ADD, HO_ADDX, HO_INC, HO_ADDS: begin
+            cin = (alu_op == HO_ADDX) ? ccr[F_C] : 1'b0;
             wide = {1'b0, a} + {1'b0, b} + {32'd0, cin};
             r = wide[31:0] & m;
             cout = (alu_sz == 2'd0) ? wide[8] : (alu_sz == 2'd1) ? wide[16] : wide[32];
             hc = (((a & hmask) + (b & hmask) + {31'd0, cin}) & (hmask + 1)) != 0;
             n = (r & sb) != 0; z = (r == 0);
             v = ((~(a ^ b)) & (a ^ r) & sb) != 0;
-            if (alu_op == OP_ADDS) begin cc = ccr; end
-            else if (alu_op == OP_INC) begin cc[F_N] = n; cc[F_Z] = z; cc[F_V] = v; end
+            if (alu_op == HO_ADDS) begin cc = ccr; end
+            else if (alu_op == HO_INC) begin cc[F_N] = n; cc[F_Z] = z; cc[F_V] = v; end
             else begin
                 cc[F_N] = n; cc[F_V] = v; cc[F_C] = cout; cc[F_H] = hc;
-                if (alu_op == OP_ADDX) begin if (!z) cc[F_Z] = 1'b0; end else cc[F_Z] = z;
+                if (alu_op == HO_ADDX) begin if (!z) cc[F_Z] = 1'b0; end else cc[F_Z] = z;
             end
         end
-        OP_SUB, OP_SUBX, OP_CMP, OP_DEC, OP_SUBS, OP_NEG: begin
-            if (alu_op == OP_NEG) begin b = a; a = 32'd0; end
-            cin = (alu_op == OP_SUBX) ? ccr[F_C] : 1'b0;
+        HO_SUB, HO_SUBX, HO_CMP, HO_DEC, HO_SUBS, HO_NEG: begin
+            if (alu_op == HO_NEG) begin b = a; a = 32'd0; end
+            cin = (alu_op == HO_SUBX) ? ccr[F_C] : 1'b0;
             wide = {1'b0, a} - {1'b0, b} - {32'd0, cin};
             r = wide[31:0] & m;
             cout = (alu_sz == 2'd0) ? wide[8] : (alu_sz == 2'd1) ? wide[16] : wide[32];
             hc = (((a & hmask) - (b & hmask) - {31'd0, cin}) & (hmask + 1)) != 0;
             n = (r & sb) != 0; z = (r == 0);
             v = ((a ^ b) & (a ^ r) & sb) != 0;
-            if (alu_op == OP_SUBS) begin cc = ccr; end
-            else if (alu_op == OP_DEC) begin cc[F_N] = n; cc[F_Z] = z; cc[F_V] = v; end
+            if (alu_op == HO_SUBS) begin cc = ccr; end
+            else if (alu_op == HO_DEC) begin cc[F_N] = n; cc[F_Z] = z; cc[F_V] = v; end
             else begin
                 cc[F_N] = n; cc[F_V] = v; cc[F_C] = cout; cc[F_H] = hc;
-                if (alu_op == OP_SUBX) begin if (!z) cc[F_Z] = 1'b0; end else cc[F_Z] = z;
+                if (alu_op == HO_SUBX) begin if (!z) cc[F_Z] = 1'b0; end else cc[F_Z] = z;
             end
-            if (alu_op == OP_CMP) r = a;   // unchanged destination
+            if (alu_op == HO_CMP) r = a;   // unchanged destination
         end
-        OP_AND: begin r = a & b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_OR:  begin r = a | b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_XOR: begin r = a ^ b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_MOV: begin r = b;     cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_NOT: begin r = ~a & m; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_EXTU: begin r = (alu_sz == 2'd1) ? {24'd0, a[7:0]} : {16'd0, a[15:0]};
+        HO_AND: begin r = a & b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
+        HO_OR:  begin r = a | b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
+        HO_XOR: begin r = a ^ b; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
+        HO_MOV: begin r = b;     cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
+        HO_NOT: begin r = ~a & m; cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
+        HO_EXTU: begin r = (alu_sz == 2'd1) ? {24'd0, a[7:0]} : {16'd0, a[15:0]};
                  cc[F_N] = 1'b0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_EXTS: begin r = (alu_sz == 2'd1) ? {16'd0, {8{a[7]}}, a[7:0]} : {{16{a[15]}}, a[15:0]};
+        HO_EXTS: begin r = (alu_sz == 2'd1) ? {16'd0, {8{a[7]}}, a[7:0]} : {{16{a[15]}}, a[15:0]};
                  cc[F_N] = (r & sb) != 0; cc[F_Z] = (r == 0); cc[F_V] = 1'b0; end
-        OP_SHLL, OP_SHAL: begin
+        HO_SHLL, HO_SHAL: begin
             r = (a << 1) & m;
             cc[F_C] = (a & sb) != 0;
-            cc[F_V] = (alu_op == OP_SHAL) ? (((a & sb) != 0) ^ ((a & (sb >> 1)) != 0)) : 1'b0;
+            cc[F_V] = (alu_op == HO_SHAL) ? (((a & sb) != 0) ^ ((a & (sb >> 1)) != 0)) : 1'b0;
             cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0;
         end
-        OP_SHLR: begin r = a >> 1; cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = 1'b0; end
-        OP_SHAR: begin r = (a >> 1) | (a & sb); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
-        OP_ROTL: begin r = ((a << 1) | {31'd0, (a & sb) != 0}) & m; cc[F_C] = (a & sb) != 0; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
-        OP_ROTR: begin r = (a >> 1) | (a[0] ? sb : 32'd0); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
-        OP_ROTXL: begin r = ((a << 1) | {31'd0, ccr[F_C]}) & m; cc[F_C] = (a & sb) != 0; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
-        OP_ROTXR: begin r = (a >> 1) | (ccr[F_C] ? sb : 32'd0); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
-        OP_DAA: begin
+        HO_SHLR: begin r = a >> 1; cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = 1'b0; end
+        HO_SHAR: begin r = (a >> 1) | (a & sb); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
+        HO_ROTL: begin r = ((a << 1) | {31'd0, (a & sb) != 0}) & m; cc[F_C] = (a & sb) != 0; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
+        HO_ROTR: begin r = (a >> 1) | (a[0] ? sb : 32'd0); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
+        HO_ROTXL: begin r = ((a << 1) | {31'd0, ccr[F_C]}) & m; cc[F_C] = (a & sb) != 0; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
+        HO_ROTXR: begin r = (a >> 1) | (ccr[F_C] ? sb : 32'd0); cc[F_C] = a[0]; cc[F_V] = 1'b0; cc[F_Z] = (r == 0); cc[F_N] = (r & sb) != 0; end
+        HO_DAA: begin
             if (ccr[F_C]) begin
                 if (ccr[F_H]) begin if (a[7:4] <= 4'h3 && a[3:0] <= 4'h3) d8 = 8'h66; end
                 else begin if (a[7:4] <= 4'h2) d8 = (a[3:0] <= 4'h9) ? 8'h60 : 8'h66; end
@@ -547,7 +547,7 @@ module h8300h (
             cc[F_H] = (((a & 32'hf) + {28'd0, d8[3:0]}) & 32'h10) != 0;
             cc[F_Z] = (r == 0); cc[F_N] = r[7]; cc[F_V] = ((~(a ^ {24'd0, d8})) & (a ^ r) & 32'h80) != 0; cc[F_C] = wide[8];
         end
-        OP_DAS: begin
+        HO_DAS: begin
             if (ccr[F_C]) begin
                 if (ccr[F_H]) begin if (a[7:4] >= 4'h6 && a[3:0] >= 4'h6) d8 = 8'h9a; end
                 else begin if (a[7:4] >= 4'h7 && a[3:0] <= 4'h9) d8 = 8'ha0; end
@@ -559,12 +559,12 @@ module h8300h (
             cc[F_H] = (((a & 32'hf) + {28'd0, d8[3:0]}) & 32'h10) != 0;
             cc[F_Z] = (r == 0); cc[F_N] = r[7]; cc[F_V] = ((~(a ^ {24'd0, d8})) & (a ^ r) & 32'h80) != 0; cc[F_C] = wide[8];
         end
-        OP_MULXU: begin
+        HO_MULXU: begin
             // .b: r16 = u8(r16) * r8   .w: r32 = u16(r32) * r16   (no flags)
             if (alu_sz == 2'd0) begin mul16 = alu_a[7:0] * alu_b[7:0]; r = {16'd0, mul16}; end
             else begin mul32 = alu_a[15:0] * alu_b[15:0]; r = mul32; end
         end
-        OP_MULXS: begin
+        HO_MULXS: begin
             if (alu_sz == 2'd0) begin
                 mul16 = $signed(alu_a[7:0]) * $signed(alu_b[7:0]);
                 r = {16'd0, mul16}; cc[F_N] = mul16[15]; cc[F_Z] = (mul16 == 0);
@@ -573,30 +573,30 @@ module h8300h (
                 r = mul32; cc[F_N] = mul32[31]; cc[F_Z] = (mul32 == 0);
             end
         end
-        OP_LDC:  begin r = a; cc = alu_b[7:0]; end
-        OP_STC:  begin r = {24'd0, ccr}; end
-        OP_ANDC: begin r = a; cc = ccr & alu_b[7:0]; end
-        OP_ORC:  begin r = a; cc = ccr | alu_b[7:0]; end
-        OP_XORC: begin r = a; cc = ccr ^ alu_b[7:0]; end
-        OP_BSET, OP_BNOT, OP_BCLR, OP_BTST, OP_BOR, OP_BIOR, OP_BXOR, OP_BIXOR, OP_BAND, OP_BIAND,
-        OP_BLD, OP_BILD, OP_BST, OP_BIST: begin
+        HO_LDC:  begin r = a; cc = alu_b[7:0]; end
+        HO_STC:  begin r = {24'd0, ccr}; end
+        HO_ANDC: begin r = a; cc = ccr & alu_b[7:0]; end
+        HO_ORC:  begin r = a; cc = ccr | alu_b[7:0]; end
+        HO_XORC: begin r = a; cc = ccr ^ alu_b[7:0]; end
+        HO_BSET, HO_BNOT, HO_BCLR, HO_BTST, HO_BOR, HO_BIOR, HO_BXOR, HO_BIXOR, HO_BAND, HO_BIAND,
+        HO_BLD, HO_BILD, HO_BST, HO_BIST: begin
             bitv = byteval[alu_bitn];
             r = {24'd0, byteval};
             case (alu_op)
-            OP_BSET:  r[{2'b00, alu_bitn}] = 1'b1;
-            OP_BNOT:  r[{2'b00, alu_bitn}] = ~bitv;
-            OP_BCLR:  r[{2'b00, alu_bitn}] = 1'b0;
-            OP_BTST:  cc[F_Z] = ~bitv;
-            OP_BOR:   cc[F_C] = ccr[F_C] | bitv;
-            OP_BIOR:  cc[F_C] = ccr[F_C] | ~bitv;
-            OP_BXOR:  cc[F_C] = ccr[F_C] ^ bitv;
-            OP_BIXOR: cc[F_C] = ccr[F_C] ^ ~bitv;
-            OP_BAND:  cc[F_C] = ccr[F_C] & bitv;
-            OP_BIAND: cc[F_C] = ccr[F_C] & ~bitv;
-            OP_BLD:   cc[F_C] = bitv;
-            OP_BILD:  cc[F_C] = ~bitv;
-            OP_BST:   r[{2'b00, alu_bitn}] = ccr[F_C];
-            OP_BIST:  r[{2'b00, alu_bitn}] = ~ccr[F_C];
+            HO_BSET:  r[{2'b00, alu_bitn}] = 1'b1;
+            HO_BNOT:  r[{2'b00, alu_bitn}] = ~bitv;
+            HO_BCLR:  r[{2'b00, alu_bitn}] = 1'b0;
+            HO_BTST:  cc[F_Z] = ~bitv;
+            HO_BOR:   cc[F_C] = ccr[F_C] | bitv;
+            HO_BIOR:  cc[F_C] = ccr[F_C] | ~bitv;
+            HO_BXOR:  cc[F_C] = ccr[F_C] ^ bitv;
+            HO_BIXOR: cc[F_C] = ccr[F_C] ^ ~bitv;
+            HO_BAND:  cc[F_C] = ccr[F_C] & bitv;
+            HO_BIAND: cc[F_C] = ccr[F_C] & ~bitv;
+            HO_BLD:   cc[F_C] = bitv;
+            HO_BILD:  cc[F_C] = ~bitv;
+            HO_BST:   r[{2'b00, alu_bitn}] = ccr[F_C];
+            HO_BIST:  r[{2'b00, alu_bitn}] = ~ccr[F_C];
             default: ;
             endcase
         end
@@ -703,17 +703,17 @@ module h8300h (
             er[d_rea] <= (d_ea == EA_INC) ? er[d_rea] + ((d_sz == 2'd0) ? 32'd1 : (d_sz == 2'd1) ? 32'd2 : 32'd4) : {8'd0, ea_calc};
         case (d_grp)
         G_ALU: begin
-            if (d_op == OP_DIVXU || d_op == OP_DIVXS) begin
+            if (d_op == HO_DIVXU || d_op == HO_DIVXS) begin
                 logic [31:0] n; logic [15:0] dd; logic nneg, dneg;
                 n = (d_sz == 2'd0) ? {16'd0, r16(d_rd)} : er[d_rd[2:0]];
                 dd = (d_sz == 2'd0) ? {8'd0, r8(d_rs)} : r16(d_rs);
-                if (d_op == OP_DIVXS) begin
+                if (d_op == HO_DIVXS) begin
                     if (d_sz == 2'd0) begin nneg = n[15]; n = nneg ? (32'd0 - {{16{n[15]}}, n[15:0]}) : n; end
                     else begin nneg = n[31]; n = nneg ? (32'd0 - n) : n; end
                     if (d_sz == 2'd0) begin dneg = dd[7]; dd = dneg ? (16'd0 - {{8{dd[7]}}, dd[7:0]}) : dd; end
                     else begin dneg = dd[15]; dd = dneg ? (16'd0 - dd) : dd; end
                 end else begin nneg = 1'b0; dneg = 1'b0; end
-                div_signed <= (d_op == OP_DIVXS);
+                div_signed <= (d_op == HO_DIVXS);
                 div_n_abs <= n; div_d_abs <= dd; div_rem <= 32'd0; div_q <= 32'd0;
                 div_cnt <= 6'd32; div_busy <= 1'b1;
                 div_neg_q <= nneg ^ dneg; div_neg_r <= nneg;
@@ -726,11 +726,11 @@ module h8300h (
                 go_wait(d_extra, S_FETCH, 5'd0);
             end else begin
                 ccr <= alu_ccr;
-                if (d_op == OP_LDC || d_op == OP_ANDC || d_op == OP_ORC || d_op == OP_XORC) noirq <= 1'b1;
-                if (d_op != OP_CMP && d_op != OP_BTST && d_op != OP_BOR && d_op != OP_BIOR &&
-                    d_op != OP_BXOR && d_op != OP_BIXOR && d_op != OP_BAND && d_op != OP_BIAND &&
-                    d_op != OP_BLD && d_op != OP_BILD && d_op != OP_LDC && d_op != OP_ANDC &&
-                    d_op != OP_ORC && d_op != OP_XORC)
+                if (d_op == HO_LDC || d_op == HO_ANDC || d_op == HO_ORC || d_op == HO_XORC) noirq <= 1'b1;
+                if (d_op != HO_CMP && d_op != HO_BTST && d_op != HO_BOR && d_op != HO_BIOR &&
+                    d_op != HO_BXOR && d_op != HO_BIXOR && d_op != HO_BAND && d_op != HO_BIAND &&
+                    d_op != HO_BLD && d_op != HO_BILD && d_op != HO_LDC && d_op != HO_ANDC &&
+                    d_op != HO_ORC && d_op != HO_XORC)
                     wsz(d_sz, d_rd, alu_res);
                 finish(pc);
             end
@@ -989,7 +989,7 @@ module h8300h (
         alu_bitn = d_bitreg ? r8(d_rs)[2:0] : d_bit;
         if (d_grp == G_BITMEM) begin
             alu_a = {24'd0, lane8(ea, mdata)}; alu_b = 32'd0;
-        end else if (d_op == OP_MULXU || d_op == OP_MULXS) begin
+        end else if (d_op == HO_MULXU || d_op == HO_MULXS) begin
             // .b: a = r16(rd) low byte, b = r8(rs); .w: a = r32(rd) low word, b = r16(rs)
             alu_a = (d_sz == 2'd0) ? {16'd0, r16(d_rd)} : er[d_rd[2:0]];
             alu_b = (d_sz == 2'd0) ? {24'd0, r8(d_rs)} : {16'd0, r16(d_rs)};

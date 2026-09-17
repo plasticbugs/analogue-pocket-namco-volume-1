@@ -6,7 +6,9 @@
 //------------------------------------------------------------------------------
 `default_nettype none
 
-module ncv1_core (
+module ncv1_core #(
+    parameter HEXDIR = "rtl/data"      // where the generated tables live (c352_mulaw.hex)
+) (
     input  logic        clk,            // 96 MHz
     input  logic        reset,
     input  logic        pix_sync,       // see clk_enables
@@ -47,6 +49,7 @@ module ncv1_core (
     output logic        dbg_h8_istart,
     output logic        dbg_h8_irq,
     output logic        dbg_video_unsupported,
+    output logic  [3:0] dbg_video_unsup_src,
     output logic  [1:0] dbg_gfxbank
 );
     // ------------------------------------------------------------ clocks
@@ -141,12 +144,12 @@ module ncv1_core (
         .hsync(hsync), .vsync(vsync), .hblank(hblank), .vblank(vblank), .de(de),
         .r(vr), .g(vg), .b(vb),
         .irq_vblank(irq_vblank), .irq_raster(irq_raster),
-        .unsupported(dbg_video_unsupported)
+        .unsupported(dbg_video_unsupported), .unsup_src(dbg_video_unsup_src)
     );
     assign rgb = {vr, vg, vb};
 
     // ------------------------------------------------------------ sound
-    c352 u_pcm (
+    c352 #(.HEXDIR(HEXDIR)) u_pcm (
         .clk(clk), .reset(reset), .cen_sample(cen_c352),
         .reg_wr(c352_wr), .reg_rd(c352_rd), .reg_addr(c352_addr), .reg_wdata(c352_wdata), .reg_q(c352_q),
         .rom_req(pcm_req), .rom_addr(pcm_addr), .rom_ack(pcm_ack), .rom_q(pcm_q),

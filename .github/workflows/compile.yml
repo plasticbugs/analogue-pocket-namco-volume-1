@@ -1,5 +1,5 @@
 ################################################################################
-# Compile the Gaiapolis Pocket core and upload the SD-card package.
+# Compile the Namco Classic Collection Vol.1 Pocket core and upload the SD-card package.
 # Runs on every push to main, on tags, and on manual dispatch.
 ################################################################################
 name: Compile Core
@@ -90,7 +90,7 @@ jobs:
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: gaia-pocket
+          name: ncv1-pocket
           path: release/pocket/
           if-no-files-found: error
 
@@ -106,11 +106,11 @@ jobs:
             echo "release ${GITHUB_REF_NAME} already published; skipping"
             exit 0
           fi
-          cd release/pocket && zip -qr ../../gaia-pocket-sdcard.zip . && cd ../..
+          cd release/pocket && zip -qr ../../ncv1-pocket-sdcard.zip . && cd ../..
           gh release create "${GITHUB_REF_NAME}" \
-            --title "Gaiapolis for Analogue Pocket ${GITHUB_REF_NAME}" \
-            --notes "Unzip onto the Pocket SD card root, overwriting previous files. The ROM image goes in Assets/gaia/common/." \
-            gaia-pocket-sdcard.zip
+            --title "Namco Classic Collection Vol.1 for Analogue Pocket ${GITHUB_REF_NAME}" \
+            --notes "Unzip onto the Pocket SD card root, overwriting previous files. The ROM image goes in Assets/ncv1/common/." \
+            ncv1-pocket-sdcard.zip
 
       - name: Upload reports
         if: always()

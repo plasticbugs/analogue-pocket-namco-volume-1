@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify a built gaiapolis .rom image against MAME's own ROM regions.
+"""Verify a built ncv1 .rom image against MAME's own ROM regions.
 
 docs/rom-regions.sha256 records the SHA-256 of several slices of each region as
 MAME 0.288 loads them. This checks the corresponding slices of the built image
