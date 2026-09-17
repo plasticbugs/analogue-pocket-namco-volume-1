@@ -3,7 +3,7 @@
     "magic": "APF_VER_1",
     "metadata": {
       "platform_ids": [
-        "ncv1"
+        "namco"
       ],
       "shortname": "ncv1",
       "description": "Namco Classic Collection Vol.1 (Namco, 1995) arcade core",

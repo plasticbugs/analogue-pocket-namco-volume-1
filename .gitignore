@@ -1,5 +1,5 @@
 # MAME romset - never commit ROMs
-ncv1/
+/ncv1/
 *.zip
 *.rom
 *.bin

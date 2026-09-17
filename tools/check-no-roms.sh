@@ -32,7 +32,7 @@ ALLOW_LARGE="modules/cpu-tg68k/gen/tg68k.v"
 # The Pocket package's own images, .bin by the platform's convention and not
 # ROM data: the platform artwork (171,930 bytes) and the core icon (2,592).
 # The size check still applies to them.
-ALLOW_PACKAGE="pkg/pocket/Platforms/_images/ncv1.bin pkg/pocket/Cores/plasticbugs.ncv1/icon.bin"
+ALLOW_PACKAGE="pkg/pocket/Platforms/_images/namco.bin pkg/pocket/Cores/plasticbugs.ncv1/icon.bin"
 
 git ls-files | while IFS= read -r f; do
     [ -f "$f" ] || continue

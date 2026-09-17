@@ -111,7 +111,7 @@ jobs:
           cd release/pocket && zip -qr ../../ncv1-pocket-sdcard.zip . && cd ../..
           gh release create "${GITHUB_REF_NAME}" \
             --title "Namco Classic Collection Vol.1 for Analogue Pocket ${GITHUB_REF_NAME}" \
-            --notes "Unzip onto the Pocket SD card root, overwriting previous files. The ROM image goes in Assets/ncv1/common/." \
+            --notes "Unzip onto the Pocket SD card root, overwriting previous files. The ROM image goes in Assets/namco/common/." \
             ncv1-pocket-sdcard.zip
 
       - name: Upload reports

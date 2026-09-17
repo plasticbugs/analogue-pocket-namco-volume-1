@@ -32,7 +32,7 @@ ROMs are not included. From your own MAME `ncv1` romset (zip or directory):
 python3 tools/mra_build.py ncv1.mra ncv1.zip
 ```
 
-produces `ncv1.rom` (5.5 MB); copy it to `Assets/ncv1/common/` on the SD card.
+produces `ncv1.rom` (5.5 MB); copy it to `Assets/namco/common/` on the SD card.
 Both known dumps of `nc1cg0.10c` are accepted (MAME ≤ 0.270 listed CRC
 355e7f29, later versions d4383199).
 

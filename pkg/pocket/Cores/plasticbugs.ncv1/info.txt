@@ -30,4 +30,4 @@ image from your own MAME ncv1 romset:
       ncv1.zip
 
 and copy ncv1.rom into
-Assets/ncv1/common/.
+Assets/namco/common/.
