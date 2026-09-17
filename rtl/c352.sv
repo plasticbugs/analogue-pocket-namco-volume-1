@@ -60,7 +60,8 @@ module c352 #(
     // output: front left/right, signed 16-bit, held for one sample period; sample_valid pulses when they update
     output logic signed [15:0] out_l,
     output logic signed [15:0] out_r,
-    output logic        sample_valid
+    output logic        sample_valid,
+    output logic        dbg_overrun     // sticky: a sample tick arrived before the previous one was finished
 );
     // flag bits
     localparam F_BUSY = 15, F_KEYON = 14, F_KEYOFF = 13, F_LOOPHIST = 11,
@@ -143,6 +144,7 @@ module c352 #(
     st_t         state, after_exec;
     logic        pend_sample;
     logic        overrun /* verilator public_flat_rd */;
+    assign dbg_overrun = overrun;
     logic  [4:0] resume_voice;
     logic [15:0] random;
     logic [31:0] on_v, off_v, snap_on, snap_off;

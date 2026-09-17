@@ -51,7 +51,8 @@ module ncv1_core #(
     output logic        dbg_h8_irq,
     output logic        dbg_video_unsupported,
     output logic  [3:0] dbg_video_unsup_src,
-    output logic  [1:0] dbg_gfxbank
+    output logic  [1:0] dbg_gfxbank,
+    output logic        dbg_c352_overrun
 );
     // ------------------------------------------------------------ clocks
     logic cen_phi1, cen_phi2, cen_h8, cen_c352;
@@ -155,6 +156,6 @@ module ncv1_core #(
         .clk(clk), .reset(reset), .cen_sample(cen_c352),
         .reg_wr(c352_wr), .reg_rd(c352_rd), .reg_addr(c352_addr), .reg_wdata(c352_wdata), .reg_q(c352_q),
         .rom_req(pcm_req), .rom_addr(pcm_addr), .rom_ack(pcm_ack), .rom_q(pcm_q),
-        .out_l(snd_l), .out_r(snd_r), .sample_valid(snd_valid)
+        .out_l(snd_l), .out_r(snd_r), .sample_valid(snd_valid), .dbg_overrun(dbg_c352_overrun)
     );
 endmodule

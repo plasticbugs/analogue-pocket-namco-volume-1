@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 
 static Vtb_mem_top *dut;
 static unsigned long long cycles = 0;
@@ -41,11 +42,12 @@ int main(int argc, char **argv) {
     uint32_t pa = 0, sa = 0, ca = 0, ta = 0; int tl = 1; bool pb = false, sb = false, cb = false, tb = false;
     int seen_units = 0;
     const int lens[] = {1, 8, 16, 32, 64};
-    unsigned long long t0 = cycles, max_wait = 0, req_t = 0;
+    unsigned long long t0 = cycles, max_wait = 0, req_t = 0, pcm_t = 0;
+    std::vector<unsigned> pcm_lat;
     while (done_prog < nreads || done_sub < nreads || done_pat < nreads / 4 || done_pcm < nreads) {
         if (!pb && done_prog < nreads) { pa = rnd() % 0x80000; dut->prog_addr = pa; dut->prog_req = 1; pb = true; }
         if (!sb && done_sub < nreads)  { sa = rnd() % 0x40000; dut->sub_addr = sa; dut->sub_req = 1; sb = true; }
-        if (!cb && done_pcm < nreads)  { ca = rnd() % 0x200000; dut->pcm_addr = ca; dut->pcm_req = 1; cb = true; }
+        if (!cb && done_pcm < nreads)  { ca = rnd() % 0x200000; dut->pcm_addr = ca; dut->pcm_req = 1; cb = true; pcm_t = cycles; }
         if (!tb && done_pat < nreads / 4) {
             tl = lens[rnd() % 5]; ta = rnd() % (0x80000 - tl);
             dut->pat_addr = ta | ((rnd() % 4) << 19); dut->pat_len = tl; dut->pat_req = 1; tb = true; seen_units = 0; req_t = cycles;
@@ -53,7 +55,7 @@ int main(int argc, char **argv) {
         tick();
         if (dut->prog_ack && pb) { if (dut->prog_q != w16(pa * 2)) { if (errors++ < 10) printf("prog %05X: %04X want %04X\n", pa, dut->prog_q, w16(pa * 2)); } dut->prog_req = 0; pb = false; done_prog++; }
         if (dut->sub_ack && sb)  { if (dut->sub_q != w16(0x100000 + sa * 2)) { if (errors++ < 10) printf("sub %05X: %04X want %04X\n", sa, dut->sub_q, w16(0x100000 + sa * 2)); } dut->sub_req = 0; sb = false; done_sub++; }
-        if (dut->pcm_ack && cb)  { if (dut->pcm_q != img[0x380000 + ca]) { if (errors++ < 10) printf("pcm %06X: %02X want %02X\n", ca, dut->pcm_q, img[0x380000 + ca]); } dut->pcm_req = 0; cb = false; done_pcm++; }
+        if (dut->pcm_ack && cb)  { if (dut->pcm_q != img[0x380000 + ca]) { if (errors++ < 10) printf("pcm %06X: %02X want %02X\n", ca, dut->pcm_q, img[0x380000 + ca]); } dut->pcm_req = 0; cb = false; done_pcm++; pcm_lat.push_back((unsigned)(cycles - pcm_t)); }
         if (dut->pat_wr && tb) {
             uint32_t b = 0x180000 + (ta + dut->pat_idx) * 4;
             uint32_t want = ((uint32_t)w16(b) << 16) | w16(b + 2);
@@ -69,6 +71,9 @@ int main(int argc, char **argv) {
     }
     printf("reads: prog %ld sub %ld pcm %ld, pattern bursts %ld (%ld units, longest %llu clocks), %llu clocks\n",
            done_prog, done_sub, done_pcm, done_pat, units, max_wait, cycles - t0);
+    std::sort(pcm_lat.begin(), pcm_lat.end());
+    if (!pcm_lat.empty()) printf("sample-ROM read latency with every client busy: median %u, 99%% %u, max %u clocks\n",
+        pcm_lat[pcm_lat.size() / 2], pcm_lat[pcm_lat.size() * 99 / 100], pcm_lat.back());
     printf(errors ? "FAIL: %ld mismatches\n" : "PASS\n", errors);
     return errors ? 1 : 0;
 }
