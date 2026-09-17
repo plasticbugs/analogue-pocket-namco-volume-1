@@ -90,16 +90,16 @@ int main(int argc, char **argv) {
     top->reset = 0;
     // machine state
     uint32_t start_pc = trace[0].pc;
-    for (int i = 0; i < 8; i++) r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__er[i] = er[i];
-    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__ccr = ccr;
-    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__pc = start_pc;
-    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__state = 3;
+    for (int i = 0; i < 8; i++) r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__er[i] = er[i];
+    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__ccr = ccr;
+    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__pc = start_pc;
+    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__state = 3;
     for (int i = 0; i < 256; i++) { r->ncv1_sub__DOT__mcu__DOT__ram_hi[i] = iram[i] >> 8; r->ncv1_sub__DOT__mcu__DOT__ram_lo[i] = iram[i] & 0xff; }
     auto IO = [&](int a) { return io[a - 0x20]; };
     r->ncv1_sub__DOT__mcu__DOT__tstr = IO(0x60) & 0x1f;
     r->ncv1_sub__DOT__mcu__DOT__syscr = IO(0xf2); r->ncv1_sub__DOT__mcu__DOT__iscr = IO(0xf4);
     r->ncv1_sub__DOT__mcu__DOT__ier = IO(0xf5); r->ncv1_sub__DOT__mcu__DOT__isr = IO(0xf6);
-    r->ncv1_sub__DOT__mcu__DOT__icr = (IO(0xf8) << 8) | IO(0xf9);
+    r->ncv1_sub__DOT__mcu__DOT__icr = (IO(0xf9) << 8) | IO(0xf8);
     r->ncv1_sub__DOT__mcu__DOT__adcsr = IO(0xe8); r->ncv1_sub__DOT__mcu__DOT__adc_run = (IO(0xe8) >> 5) & 1;
     const int chbase[5] = {0x64, 0x6e, 0x78, 0x82, 0x92};
     for (int c = 0; c < 5; c++) {
@@ -129,6 +129,10 @@ int main(int argc, char **argv) {
     top->eval();
     // if MAME took IRQ5 right at the start, present the pin now (CPU frozen) so the synchroniser sees it
     if (trace[0].irq && trace[0].irqnum == 5) { top->irq5_n = 0; for (int i = 0; i < 8; i++) tick(false); }
+    // the vector is registered in h83002 and sampled again by the core on its enable: settle both
+    for (int i = 0; i < 2; i++) tick(false);
+    r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__core__DOT__irq_vector = r->ncv1_sub__DOT__mcu__DOT__irq_vector;
+    top->eval();
 
     size_t ti = 0, ai = 0; long ninstr = 0, nacc = 0, nint = 0, clocks = 0;
     long drift_extra = 0, drift_missing = 0, nirq = 0;
@@ -146,8 +150,10 @@ int main(int argc, char **argv) {
     // internal-access checking: watch the CPU bus for accesses to fffd10+ and compare with the log
     bool int_seen = false; bool dbgp = false; int dbgn = 0;
 
+    unsigned cen_acc = 0;             // the H8 enable as rtl/clk_enables.sv makes it: 16.384 of 96 MHz
     while (!fail) {
-        bool cen = (clocks % 3) == 0;
+        cen_acc += 64; bool cen = false;
+        if (cen_acc >= 375) { cen_acc -= 375; cen = true; }
         // external bus model
         top->rom_ack = 0; top->sh_ack = 0;
         bool ext_req = top->rom_req || top->sh_req;
@@ -228,8 +234,8 @@ int main(int argc, char **argv) {
         }
         if (top->dbg_irq) {
             nirq++;
-            if (getenv("NCV1_VERBOSE")) printf("irq: RTL instr %ld npc %06X (trace idx %zu, trace next %s%06X, tcnt0 %04X, isr %02X, states %ld)\n",
-                ninstr, top->dbg_npc, ti, trace[ti].irq ? "irq@" : "", trace[ti].pc, r->ncv1_sub__DOT__mcu__DOT__tcnt[0], r->ncv1_sub__DOT__mcu__DOT__isr, clocks / 3);
+            if (getenv("NCV1_VERBOSE")) printf("irq: RTL instr %ld npc %06X (trace idx %zu, trace next %s%06X, tcnt0 %04X, isr %02X, clocks %ld)\n",
+                ninstr, top->dbg_npc, ti, trace[ti].irq ? "irq@" : "", trace[ti].pc, r->ncv1_sub__DOT__mcu__DOT__tcnt[0], r->ncv1_sub__DOT__mcu__DOT__isr, clocks);
             // find the matching trace entry, tolerating spin-loop drift
             if (!next_is_irq(-1)) {
                 // RTL is early: skip trace entries that repeat the last executed PC (spin loop)

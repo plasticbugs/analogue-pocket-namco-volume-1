@@ -17,6 +17,7 @@ module ncv1_core #(
     output logic [19:1] prog_addr,  output logic prog_req,  input logic prog_ack,  input logic [15:0] prog_q,    // 68000 program, 1 MB
     output logic [18:1] sub_addr,   output logic sub_req,   input logic sub_ack,   input logic [15:0] sub_q,     // H8 program, 512 KB
     output logic [20:0] pat_addr,   output logic pat_req,   input logic pat_ack,   input logic [31:0] pat_q,     // pattern ROM, 32-bit units (8 MB space)
+    output logic  [6:0] pat_len,    input  logic pat_wr,    input logic  [5:0] pat_idx,                         // burst: units, per-unit strobe and index
     output logic [23:0] pcm_addr,   output logic pcm_req,   input logic pcm_ack,   input logic  [7:0] pcm_q,     // C352 samples, bytes
 
     // EEPROM load (during reset) and read-out
@@ -140,7 +141,8 @@ module ncv1_core #(
         .clk(clk), .reset(reset), .cen_pix(cen_pix),
         .port_sel(ygv_port), .port_wr(ygv_wr), .port_rd(ygv_rd), .port_wdata(ygv_wdata), .port_q(ygv_q),
         .gfxbank(gfxbank),
-        .pat_req(pat_req), .pat_addr(pat_addr), .pat_ack(pat_ack), .pat_q(pat_q),
+        .pat_req(pat_req), .pat_addr(pat_addr), .pat_len(pat_len), .pat_wr(pat_wr), .pat_idx(pat_idx),
+        .pat_ack(pat_ack), .pat_q(pat_q),
         .hsync(hsync), .vsync(vsync), .hblank(hblank), .vblank(vblank), .de(de),
         .r(vr), .g(vg), .b(vb),
         .irq_vblank(irq_vblank), .irq_raster(irq_raster),

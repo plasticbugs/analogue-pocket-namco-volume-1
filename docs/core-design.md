@@ -82,10 +82,26 @@ bench loads the dumps, runs the RTL, feeds each non-ROM read from the log
 (checking the address), checks every write, and compares registers at every
 instruction boundary. IRQ5 is injected at the instruction where MAME took it.
 
+Timing (96 MHz): the sequencer's decode, ALU and register write-back are far
+more than one system clock deep, but the CPU only advances on `cen_h8`, whose
+pulses are 5 or 6 clocks apart. `h8300h_core` holds every register the
+sequencer writes and writes them only on the enable; it samples the bus data,
+the bus-done flag and the interrupt vector on the enable and uses them from
+the next state, and it signals new bus requests, divider starts and debug
+pulses by toggling a register. The `h8300h` wrapper around it does the
+per-clock work: issuing requests, capturing acknowledges, the 32-clock
+restoring divider and the one-clock pulses. That split is what makes
+`projects/ncv1_pocket.sdc`'s 5-cycle multicycle on `h8300h_core` valid.
+The interrupt controller's vector is a registered two-level priority encoder.
+With memories that acknowledge within 5 clocks (the ROM caches' hits, on-chip
+and shared RAM, the C352) every access still costs exactly 2 states.
+
 ### 3.3 YGV608
 
-Everything MAME's `ygv608.cpp` implements except ROZ (ZRON) and the ROM DMA,
-which ncv1 does not use (an `unsupported` output flags them). Modes seen so
+Everything MAME's `ygv608.cpp` implements except the ROM DMA and mosaic,
+which ncv1 does not use (an `unsupported` output flags them). ROZ is used by
+the title animation and implemented per pixel with whole-tile bursts
+(docs/ygv608.md §10). Modes seen so
 far: MD=2 8x8 64x32 (title/attract) and MD=1 (2 planes, 16-bit names) 32x32
 with 16x16 patterns and 16-dot column scroll (games); PRM 0 and 1; plane A
 transparency; both sprite aux modes.
@@ -150,6 +166,11 @@ X = button 3, Start, Select = coin; Test/Service via the interact menu.
 | C352 (`rtl/c352.sv`) | 40 s replay within 0.3% RMS of MAME, all register reads exact |
 | 68000 side, memories, top (`rtl/ncv1_main.sv`, `rtl/ncv1_core.sv`, `target/pocket/*`) | whole-machine bench boots: self-test RAM OK, sound, title screen; Quartus map pending |
 
-Open: the boot reaches the title ~50-100 frames later than MAME (68000 speed
-through the SDRAM cache to be measured); the `unsupported` video flag is raised
-during boot (source being identified); no hardware run yet.
+Also verified: a scripted whole-machine run (`sim/run_system.sh`) boots,
+takes coins, navigates the menus and starts Galaga. The boot runs about 50
+frames behind MAME's timeline (under a second). ROZ, used by the title
+animation, is pixel-exact on its 10 frozen states.
+
+Open: timing closure at 96 MHz (the first CI fit missed by 6.9 ns on the H8
+interrupt-to-sequencer path, now restructured and constrained); no hardware
+run yet.

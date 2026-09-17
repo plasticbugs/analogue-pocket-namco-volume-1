@@ -61,19 +61,24 @@ static Vtb_video_top *top;
 static std::vector<uint8_t> rom;   // 2 MB pattern ROM
 static long clocks = 0;
 static int pix_div = 0;
-static int lat = 0; static bool pat_busy = false;
+static int lat = 0; static bool pat_busy = false; static int pat_n = 0; static bool pat_last = false;
+static long pat_units = 0, pat_reqs = 0;
 static unsigned rng = 12345;
 static unsigned rnd() { rng = rng * 1103515245u + 12345u; return (rng >> 16) & 0x7fff; }
 
 static void tick() {
-    // pattern ROM model: acks 4..12 clocks after the request appears
-    top->pat_ack = 0;
+    // pattern ROM model, SDRAM-like: the first unit 4..12 clocks after the request
+    // appears, each further unit of a burst 4 clocks later (two SDRAM words at one
+    // READ every 2 clocks), the ack one clock after the last
+    top->pat_ack = 0; top->pat_wr = 0;
     if (top->pat_req) {
-        if (!pat_busy) { pat_busy = true; lat = 4 + rnd() % 9; }
+        if (!pat_busy) { pat_busy = true; lat = 4 + rnd() % 9; pat_n = 0; pat_last = false; pat_reqs++; }
+        else if (pat_last) { top->pat_ack = 1; pat_busy = false; }
         else if (--lat == 0) {
-            uint32_t a = (top->pat_addr * 4) & 0x1fffff;
+            uint32_t a = ((top->pat_addr + pat_n) * 4) & 0x1fffff;
             top->pat_q = ((uint32_t)rom[a] << 24) | ((uint32_t)rom[a + 1] << 16) | ((uint32_t)rom[a + 2] << 8) | rom[a + 3];
-            top->pat_ack = 1; pat_busy = false;
+            top->pat_wr = 1; top->pat_idx = pat_n; pat_units++;
+            if (++pat_n == top->pat_len) pat_last = true; else lat = 4;
         }
     } else pat_busy = false;
     top->cen_pix = (pix_div == 0);
@@ -124,6 +129,17 @@ int main(int argc, char **argv) {
     reg_write(15, st.get("m_raster_irq_vpos") & 0xff);
     reg_write(16, (st.get("m_raster_irq_mode") << 7) | (((st.get("m_raster_irq_vpos") >> 8) & 1) << 6) | ((st.get("m_raster_irq_hpos") / 32) & 0x1f));
     reg_write(6, st.get("m_sprite_bank"));
+    // ROZ: R#25-27 AX, 28-29 DX, 30-31 DXY, 32-34 AY, 35-36 DY, 37-38 DYX, low byte first (MAME m_raw_*)
+    {
+        uint32_t ax = st.get("m_raw_ax"), dx = st.get("m_raw_dx"), dxy = st.get("m_raw_dxy");
+        uint32_t ay = st.get("m_raw_ay"), dy = st.get("m_raw_dy"), dyx = st.get("m_raw_dyx");
+        reg_write(25, ax & 0xff); reg_write(26, (ax >> 8) & 0xff); reg_write(27, (ax >> 16) & 0xff);
+        reg_write(28, dx & 0xff); reg_write(29, (dx >> 8) & 0xff);
+        reg_write(30, dxy & 0xff); reg_write(31, (dxy >> 8) & 0xff);
+        reg_write(32, ay & 0xff); reg_write(33, (ay >> 8) & 0xff); reg_write(34, (ay >> 16) & 0xff);
+        reg_write(35, dy & 0xff); reg_write(36, (dy >> 8) & 0xff);
+        reg_write(37, dyx & 0xff); reg_write(38, (dyx >> 8) & 0xff);
+    }
     const auto &ba = st.a["m_base_addr"];
     for (int k = 0; k < 8; k++) reg_write(17 + k, (ba[2 * k] & 7) | ((ba[2 * k + 1] & 7) << 4));
     {
@@ -188,10 +204,10 @@ int main(int argc, char **argv) {
     fprintf(o, "P6\n%d %d\n255\n", W, H);
     fwrite(img.data(), 1, img.size(), o);
     fclose(o);
-    printf("frame: %ld pixels captured%s, worst line %u clocks (last %u), overrun %d, unsupported %d\n",
-           npix, overflow ? " (OVERFLOW)" : "", top->max_clocks, top->line_clocks, top->overrun, top->unsupported);
+    printf("frame: %ld pixels captured%s, worst line %u clocks (last %u), overrun %d, unsupported %d, pattern requests %ld units %ld\n",
+           npix, overflow ? " (OVERFLOW)" : "", top->max_clocks, top->line_clocks, top->overrun, top->unsupported, pat_reqs, pat_units);
     printf("FV irq: asserted at line %d dot %d (expect 250, 0), cleared by status write: %s\n", fv_line, fv_dot, fv_cleared ? "yes" : "NO");
-    bool ok = (npix == (long)W * H) && !overflow && fv_line == 250 && fv_dot == 0 && fv_cleared && !top->overrun;
+    bool ok = (npix == (long)W * H) && !overflow && fv_line == 250 && fv_dot == 0 && fv_cleared && !top->overrun && !top->unsupported;
     printf("%s\n", ok ? "BENCH-OK" : "BENCH-FAIL");
     delete top;
     return ok ? 0 : 1;

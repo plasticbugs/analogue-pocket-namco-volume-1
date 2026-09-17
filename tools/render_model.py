@@ -265,11 +265,81 @@ class Renderer:
         granularity = 16 if GFX[gfxset][1] == 4 else 256
         return pen, colour * granularity
 
-    def draw_tilemap(self, plane):
+    def roz_params(self, plane):
+        """draw_layer_roz's arguments: (startx, starty, incxx, incxy, incyx, incyy,
+        wraparound) as MAME passes them to tilemap_t::draw_roz (all u32/int)."""
+        s = self.st
+        sdt = self.sdt[plane]
+        sy = sdt[0x00] + ((sdt[0x01] & 0x0f) << 8)
+        sx = sdt[0x80] + ((sdt[0x81] & 0x0f) << 8)
+        if s.v_div_size:                              # u32 arithmetic in MAME
+            sx = (sx - 0x200) & 0xffffffff if (sx & 0x1ff) else 0
+            sy = (sy - 0x200) & 0xffffffff if (sy & 0x1ff) else 0
+        startx = (s.ax + (sx << 16)) & 0xffffffff
+        starty = (s.ay + (sy << 16)) & 0xffffffff
+        def sgn(v):
+            v &= 0xffffffff
+            return v - (1 << 32) if v & 0x80000000 else v
+        # draw_roz(startx, starty, incxx = m_dx, incxy = m_dyx, incyx = m_dxy, incyy = m_dy)
+        return startx, starty, sgn(s.dx), sgn(s.dyx), sgn(s.dxy), sgn(s.dy), not s.roz_wrap_disable
+
+    def roz_is_identity(self, plane):
+        startx, starty, incxx, incxy, incyx, incyy, wrap = self.roz_params(plane)
+        return incxx == 0x10000 and incxy == 0 and incyx == 0 and incyy == 0x10000 and wrap
+
+    def draw_tilemap_roz(self, plane):
+        """tilemap_t::draw_roz_core: per-pixel 16.16 affine sampling of the
+        tilemap pixmap (page_x*ts by page_y*ts pixels), wrapping or clipped.
+        Only opaque pixels (mask 0x1f == LAYER0) are plotted, so plane A's
+        transparent pen (border colour) is skipped exactly as in draw()."""
+        s = self.st
+        startx, starty, incxx, incxy, incyx, incyy, wrap = self.roz_params(plane)
+        tw, th = self.tw, self.th
+        xmask, ymask = tw - 1, th - 1
+        widthshifted, heightshifted = tw << 16, th << 16
+        transparent_pen = s.border_color if plane == 0 else None
+        out = [0] * (W * H)
+        drawn = [False] * (W * H)
+        M = 0xffffffff
+        for sy in range(H):
+            cx, cy = startx, starty
+            for sx in range(W):
+                if wrap:
+                    tx, ty = (cx >> 16) & xmask, (cy >> 16) & ymask
+                    inside = True
+                else:
+                    inside = cx < widthshifted and cy < heightshifted
+                    tx, ty = cx >> 16, cy >> 16
+                if inside:
+                    pen, pbase = self.tilemap_pixel(plane, tx, ty)
+                    if not (transparent_pen is not None and pen == transparent_pen):
+                        out[sy * W + sx] = pbase + pen
+                        drawn[sy * W + sx] = True
+                cx = (cx + incxx) & M
+                cy = (cy + incxy) & M
+            startx = (startx + incyx) & M
+            starty = (starty + incyy) & M
+        return out, drawn
+
+    def draw_layer(self, plane):
+        """draw_layer_roz: ROZ when ZRON, else the plain tilemap draw. An
+        identity ROZ falls back to draw() with row 0 / column 0 scrolls
+        overridden by startx/starty (draw_roz_common)."""
+        s = self.st
+        if not s.zron:
+            return self.draw_tilemap(plane)
+        if self.roz_is_identity(plane):
+            startx, starty = self.roz_params(plane)[0:2]
+            return self.draw_tilemap(plane, (startx >> 16, starty >> 16))
+        return self.draw_tilemap_roz(plane)
+
+    def draw_tilemap(self, plane, override=None):
         """MAME tilemap_t::draw of plane into a 288x224 array of palette
         indices, honouring the row/column scroll configuration of
         screen_update. Returns (indices, drawn-mask) where undrawn pixels
-        (transparent pen, plane A only) are 0 / False."""
+        (transparent pen, plane A only) are 0 / False. `override` =
+        (scrollx0, scrolly0) replaces row 0's x scroll and column 0's y scroll
+        (tilemap_t::set_scrollx/set_scrolly(0, ...))."""
         s = self.st
         sdt = self.sdt[plane]
         row_scroll_mode = s.h_div_size != 0        # scroll_cols = 1, scroll_rows = page_y
@@ -284,6 +354,9 @@ class Renderer:
         for row in range(nrows):
             tr = self.get_row_division(row)
             rowscroll.append((sdt[tr + 0x80] + (sdt[tr + 0x81] << 8)) % self.tw)
+        if override is not None:
+            rowscroll[0] = override[0] % self.tw
+            colscroll[0] = override[1] % self.th
         tw, th, ts = self.tw, self.th, self.tsize
         transparent_pen = s.border_color if plane == 0 else None
         out = [0] * (W * H)
@@ -367,7 +440,7 @@ class Renderer:
         want_s = layer in ('all', 's')
         two_planes = not (self.md & MD_1PLANE)
         if two_planes and want_b and s.dspe:
-            work, _ = self.draw_tilemap(1)          # B is opaque into the work bitmap
+            work, _ = self.draw_layer(1)            # B is opaque into the work bitmap
             if s.planeB_trans_enable:
                 for k in range(W * H):
                     if work[k] != 0:
@@ -380,7 +453,7 @@ class Renderer:
             self.draw_sprites(bitmap)
         if want_a:
             if s.dspe:
-                work, _ = self.draw_tilemap(0)      # undrawn (== border pen) stay 0
+                work, _ = self.draw_layer(0)        # undrawn (== border pen) stay 0
             else:
                 work = [0] * (W * H)
             if s.planeA_trans_enable:

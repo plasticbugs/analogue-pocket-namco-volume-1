@@ -27,7 +27,10 @@ module ygv608 (
     // pattern ROM port: 32-bit fetch of 4 consecutive bytes of the 8 MB pattern space
     output logic        pat_req,
     output logic [20:0] pat_addr,
-    input  logic        pat_ack,
+    output logic  [6:0] pat_len,        // units in the request (1, or a whole tile for ROZ)
+    input  logic        pat_wr,         // one unit delivered (pat_q, pat_idx)
+    input  logic  [5:0] pat_idx,
+    input  logic        pat_ack,        // after the last unit
     input  logic [31:0] pat_q,
     // video out
     output logic        hsync, vsync, hblank, vblank, de,
@@ -36,7 +39,7 @@ module ygv608 (
     output logic        irq_vblank,
     output logic        irq_raster,
     output logic        unsupported,
-    output logic  [3:0] unsup_src       // {ROM DMA, ZRON, mosaic, render overrun}
+    output logic  [3:0] unsup_src       // {ROM DMA, ROZ case not as MAME, mosaic, render overrun}
 );
     // ------------------------------------------------------------ registers
     logic  [5:0] ytile_ptr, xtile_ptr;
@@ -65,7 +68,23 @@ module ygv608 (
     logic        raster_irq_mode;
     logic [47:0] base_addr;            // plane*24 + entry*3
     logic  [7:0] crtc [8];             // R#39..46 raw
-    logic  [7:0] roz_raw [14];         // R#25..38 raw (unused)
+    logic  [7:0] roz_raw [14];         // R#25..38 raw
+    // MAME roz_convert_raw24/16: 21 or 13 significant bits, << 7, sign-extended from bit 27 or 19
+    /* verilator lint_off UNUSEDSIGNAL */
+    function automatic logic [31:0] roz24(input logic [7:0] b0, input logic [7:0] b1, input logic [7:0] b2);
+        roz24 = {{4{b2[4]}}, b2[4:0], b1, b0, 7'd0};
+    endfunction
+    function automatic logic [31:0] roz16(input logic [7:0] b0, input logic [7:0] b1);
+        roz16 = {{12{b1[4]}}, b1[4:0], b0, 7'd0};
+    endfunction
+    /* verilator lint_on UNUSEDSIGNAL */
+    wire [31:0] roz_ax  = roz24(roz_raw[0], roz_raw[1], roz_raw[2]);
+    wire [31:0] roz_dx  = roz16(roz_raw[3], roz_raw[4]);
+    wire [31:0] roz_dxy = roz16(roz_raw[5], roz_raw[6]);
+    wire [31:0] roz_ay  = roz24(roz_raw[7], roz_raw[8], roz_raw[9]);
+    wire [31:0] roz_dy  = roz16(roz_raw[10], roz_raw[11]);
+    wire [31:0] roz_dyx = roz16(roz_raw[12], roz_raw[13]);
+    logic       roz_unsup;
     logic  [5:0] register_address;
     logic        register_autoinc_r, register_autoinc_w;
     logic  [7:0] screen_status;        // bits 4:2 = FP FV FC
@@ -462,8 +481,8 @@ module ygv608 (
 
     // ------------------------------------------------------------ renderer
     logic        rend_busy, rend_overrun;
-    assign unsupported = unsupported_sticky | zron | (mosaic_a != 2'd0) | (mosaic_b != 2'd0) | rend_overrun;
-    assign unsup_src = {unsupported_sticky, zron, (mosaic_a != 2'd0) | (mosaic_b != 2'd0), rend_overrun};
+    assign unsupported = unsupported_sticky | roz_unsup | (mosaic_a != 2'd0) | (mosaic_b != 2'd0) | rend_overrun;
+    assign unsup_src = {unsupported_sticky, roz_unsup, (mosaic_a != 2'd0) | (mosaic_b != 2'd0), rend_overrun};
     logic [15:0] rend_line_clocks, rend_max_clocks;
     logic  [9:0] lb_raddr;
     logic  [7:0] lb_q;
@@ -476,10 +495,14 @@ module ygv608 (
         .sprd(sprite_disable), .prm(priority_mode), .ctpb(planeB_trans), .ctpa(planeA_trans),
         .apf(planeA_color_fetch), .bpf(planeB_color_fetch), .spf(sprite_color_fetch),
         .border(border_color), .sprite_bank(sprite_bank), .gfxbank(gfxbank), .base_addr(base_addr),
+        .zron(zron), .roz_wrap(~roz_wrap_disable),
+        .roz_ax(roz_ax), .roz_ay(roz_ay), .roz_dx(roz_dx), .roz_dy(roz_dy), .roz_dxy(roz_dxy), .roz_dyx(roz_dyx),
+        .roz_unsupported(roz_unsup),
         .pnt_addr(pnt_rend_raddr), .pnt_q(pnt_rend_q),
         .sdt_addr(sdt_rend_raddr), .sdt_q(sdt_rend_q),
         .sat_addr(sat_rend_raddr), .sat_q(sat_rend_q),
-        .pat_req(pat_req), .pat_addr(pat_addr), .pat_ack(pat_ack), .pat_q(pat_q),
+        .pat_req(pat_req), .pat_addr(pat_addr), .pat_len(pat_len), .pat_wr(pat_wr), .pat_idx(pat_idx),
+        .pat_ack(pat_ack), .pat_q(pat_q),
         .lb_raddr(lb_raddr), .lb_q(lb_q)
     );
 
@@ -516,7 +539,7 @@ module ygv608 (
     end
 
     wire _unused_ok = &{1'b0, rend_busy, rend_line_clocks, rend_max_clocks, crtc[0], crtc[1], crtc[2], crtc[3],
-                        crtc[4], crtc[5], crtc[6], crtc[7], roz_raw[0], dckm, h_display_size, v_display_size,
-                        roz_wrap_disable, scroll_wrap_disable, scm, yse, cbdr, rd_sat_lane[5:2], dma_status,
+                        crtc[4], crtc[5], crtc[6], crtc[7], dckm, h_display_size, v_display_size,
+                        scroll_wrap_disable, scm, yse, cbdr, rd_sat_lane[5:2], dma_status,
                         pal_out_q[23:22], pal_out_q[15:14], pal_out_q[7:6], disp_line[8:1]};
 endmodule

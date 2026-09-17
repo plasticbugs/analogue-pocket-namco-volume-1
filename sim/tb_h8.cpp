@@ -95,10 +95,10 @@ int main(int argc, char **argv) {
     top->reset = 0;
     // load the machine state: registers, PC from the trace, and skip the reset vector fetch
     uint32_t start_pc = trace[0].pc;
-    for (int i = 0; i < 8; i++) top->rootp->h8300h__DOT__er[i] = er[i];
-    top->rootp->h8300h__DOT__ccr = ccr;
-    top->rootp->h8300h__DOT__pc = start_pc;
-    top->rootp->h8300h__DOT__state = 3;   // S_FETCH
+    for (int i = 0; i < 8; i++) top->rootp->h8300h__DOT__core__DOT__er[i] = er[i];
+    top->rootp->h8300h__DOT__core__DOT__ccr = ccr;
+    top->rootp->h8300h__DOT__core__DOT__pc = start_pc;
+    top->rootp->h8300h__DOT__core__DOT__state = 3;   // S_FETCH
     top->eval();
 
     size_t ti = 0, ai = 0;
@@ -125,9 +125,14 @@ int main(int argc, char **argv) {
         }
     };
     arm_irq_if_next();
+    // the core samples the vector on its enable; preset the sampled copy for an interrupt at the start
+    top->rootp->h8300h__DOT__core__DOT__irq_vector = top->irq_vector;
+    top->eval();
+    unsigned cen_acc = 0;             // the H8 enable as rtl/clk_enables.sv makes it: 16.384 of 96 MHz
 
     while (!fail && !Verilated::gotFinish()) {
-        bool cen = (clocks % 3) == 0;
+        cen_acc += 64; bool cen = false;
+        if (cen_acc >= 375) { cen_acc -= 375; cen = true; }
         // bus model: answer a request one clock after seeing it
         top->bus_ack = 0;
         if ((top->bus_rd || top->bus_wr)) {

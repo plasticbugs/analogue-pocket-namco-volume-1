@@ -11,6 +11,14 @@
 // line_y) begins a line into bank line_y[0]; `busy` holds until it is done.
 // A start while busy sets the sticky `overrun` flag. `line_clocks` is the
 // length of the last line and `max_clocks` the longest seen.
+//
+// ROZ (R#7 ZRON, docs/ygv608.md section 10): a plane is sampled per pixel with
+// MAME's 16.16 accumulators (tilemap_t::draw_roz_core). The first pixel that
+// lands in a tile looks the tile up as the normal path does and fetches the
+// whole tile in one pattern-port burst into `tbuf`; a straight scan line never
+// returns to a tile it has left, so one cached tile is enough. Four clocks a
+// pixel plus about 50 a tile: the title animation's worst line (36 tiles) is
+// under 3,500 of the 6,210 clocks.
 //------------------------------------------------------------------------------
 `default_nettype none
 
@@ -43,6 +51,10 @@ module ygv608_render (
     input  logic  [7:0] sprite_bank,    // R#6
     input  logic  [1:0] gfxbank,
     input  logic [47:0] base_addr,      // bit plane*24 + entry*3, 3 bits each
+    input  logic        zron,           // R#7 ZRON
+    input  logic        roz_wrap,       // !R#8 RLRT
+    input  logic [31:0] roz_ax, roz_ay, roz_dx, roz_dy, roz_dxy, roz_dyx,   // MAME's converted m_ax..m_dyx
+    output logic        roz_unsupported, // a ROZ case not rendered as MAME: identity (MAME draws unrotated) or plane B unwrapped
 
     // table read ports
     output logic [10:0] pnt_addr,       // word address of the 4 KB name table
@@ -52,9 +64,13 @@ module ygv608_render (
     output logic  [5:0] sat_addr,       // sprite entry
     input  logic [31:0] sat_q,          // [7:0] sy, [15:8] sx, [23:16] attr, [31:24] name
 
-    // pattern ROM port
+    // pattern ROM port: pat_len 32-bit units from pat_addr; each arrives with pat_wr and
+    // its index, pat_ack follows the last one (pat_q then still holds it)
     output logic        pat_req,
     output logic [20:0] pat_addr,
+    output logic  [6:0] pat_len,
+    input  logic        pat_wr,
+    input  logic  [5:0] pat_idx,
     input  logic        pat_ack,
     input  logic [31:0] pat_q,
 
@@ -70,6 +86,15 @@ module ygv608_render (
     always_ff @(posedge clk) begin
         if (lb_we) lbuf[lb_waddr] <= lb_wdata;
         lb_q <= lbuf[lb_raddr];
+    end
+
+    // ------------------------------------------------------------ ROZ tile buffer
+    logic [31:0] tbuf [64];
+    logic  [5:0] tb_raddr;
+    logic [31:0] tb_q;
+    always_ff @(posedge clk) begin
+        if (pat_wr && roz_fetch) tbuf[pat_idx] <= pat_q;
+        tb_q <= tbuf[tb_raddr];
     end
 
     // ------------------------------------------------------------ derived mode
@@ -96,6 +121,7 @@ module ygv608_render (
         S_PL_INIT, S_PL_RS0, S_PL_RS1, S_PL_CS0, S_PL_CS1, S_PL_SETUP, S_PL_ROWRS0, S_PL_ROWRS1, S_PL_ROWRS2,
         S_T_COL, S_T_CS0, S_T_CS1, S_T_PNT, S_T_PNT1, S_T_PAGE0, S_T_PAGE1, S_T_CODE, S_T_FETCH, S_T_WAIT, S_T_WRITE, S_T_NEXT,
         S_SP_INIT, S_SP_READ, S_SP_READ1, S_SP_DECODE, S_SP_FETCH, S_SP_WAIT, S_SP_WRITE, S_SP_NEXT,
+        S_R_SETUP0, S_R_SETUP1, S_R_A, S_R_B, S_R_C, S_R_D, S_R_FETCH, S_R_WAIT,
         S_DONE
     } st_t;
     st_t         st;
@@ -129,6 +155,17 @@ module ygv608_render (
     logic  [1:0] ssize;
     logic  [5:0] syy;            // row within the sprite (already flipped)
     logic [15:0] clk_count;
+    // ROZ
+    logic        roz_fetch;      // the pattern port is filling tbuf
+    logic        roz;            // this plane is drawn by the ROZ path
+    logic [31:0] roz_cx, roz_cy, roz_sx0, roz_sy0, roz_mx, roz_my;
+    logic  [8:0] rx;
+    logic  [6:0] r_col, r_row;
+    logic  [4:0] r_px, r_py;
+    logic        r_inside;
+    logic        tile_valid;
+    logic  [6:0] tile_col, tile_row;
+    logic  [2:0] r_pc;           // pixel within the unit: 4bpp 0-7, 8bpp 0-3
     wire _unused_ok = &{1'b0, prm[1], page_y_m1[0], rs16[15:12], cs16[15:8]};
 
     // ------------------------------------------------------------ helpers
@@ -190,6 +227,7 @@ module ygv608_render (
             line_clocks <= 16'd0; max_clocks <= 16'd0; clk_count <= 16'd0;
             pnt_addr <= 11'd0; sdt_addr <= 9'd0; sat_addr <= 6'd0;
             lb_waddr <= 10'd0; lb_wdata <= 8'd0; phase <= 3'd0;
+            pat_len <= 7'd1; roz_fetch <= 1'b0; roz <= 1'b0; roz_unsupported <= 1'b0; tile_valid <= 1'b0; tb_raddr <= 6'd0;
         end else begin
             if (busy) clk_count <= clk_count + 16'd1;
             if (start) begin
@@ -247,7 +285,10 @@ module ygv608_render (
                 psy <= cs_now[11:0];
                 k <= 6'd0;
                 ntiles <= pts16 ? 6'd19 : 6'd37;
-                if (row_scroll_mode) begin
+                roz <= zron;
+                if (zron) begin
+                    st <= S_R_SETUP0;
+                end else if (row_scroll_mode) begin
                     // ty = (y + colscroll[0]) mod th; the row's own x scroll
                     ty_now  = ({2'b00, y} + cs_now[9:0]) & th_m1;
                     rsh     = ty_now >> log2ts;
@@ -341,7 +382,7 @@ module ygv608_render (
                 if (col >= page_x || row >= page_y) begin
                     code <= 20'd0; colour <= 4'd0; tflipx <= 1'b0; tflipy <= 1'b0;
                 end
-                st <= S_T_FETCH;
+                st <= roz ? S_R_FETCH : S_T_FETCH;
             end
             S_T_FETCH: begin
                 logic [4:0] pyf; logic [26:0] wa; logic [5:0] blk;
@@ -355,6 +396,7 @@ module ygv608_render (
                     else        wa = ({7'd0, code} << 6) + {21'd0, pyf[3], fidx[1], 4'd0} + {23'd0, pyf[2:0], 1'b0} + {26'd0, fidx[0]};
                 end
                 pat_addr <= wa[20:0];
+                pat_len <= 7'd1;
                 pat_req <= 1'b1;
                 st <= S_T_WAIT;
             end
@@ -462,6 +504,7 @@ module ygv608_render (
                 default: wa = ({7'd0, code} << 9) + {18'd0, blk, 3'b000} + {24'd0, syy[2:0]};
                 endcase
                 pat_addr <= wa[20:0];
+                pat_len <= 7'd1;
                 pat_req <= 1'b1;
                 st <= S_SP_WAIT;
             end
@@ -489,6 +532,111 @@ module ygv608_render (
             S_SP_NEXT: begin
                 if (si == 6'd0) st <= S_PHASE;
                 else begin si <= si - 6'd1; sat_addr <= si - 6'd1; st <= S_SP_READ; end
+            end
+            // ---------------- ROZ plane (MAME draw_layer_roz + tilemap_t::draw_roz_core)
+            S_R_SETUP0: begin
+                // start = a + (scroll << 16); with column division the scroll is (s & 0x1ff) ? s - 0x200 : 0
+                logic [11:0] sxs, sys;
+                logic [31:0] sxv, syv;
+                sxs = rs16[11:0];
+                sys = cs16[11:0];
+                if (slv != 3'd0) begin
+                    sxv = (sxs[8:0] != 9'd0) ? ({20'd0, sxs} - 32'h200) : 32'd0;
+                    syv = (sys[8:0] != 9'd0) ? ({20'd0, sys} - 32'h200) : 32'd0;
+                end else begin
+                    sxv = {20'd0, sxs};
+                    syv = {20'd0, sys};
+                end
+                roz_sx0 <= roz_ax + {sxv[15:0], 16'd0};
+                roz_sy0 <= roz_ay + {syv[15:0], 16'd0};
+                // this line's start: + y * incyx (m_dxy), + y * incyy (m_dy)
+                roz_mx <= roz_dxy * {24'd0, y};
+                roz_my <= roz_dy * {24'd0, y};
+                if ((roz_dx == 32'h10000 && roz_dy == 32'h10000 && roz_dxy == 32'd0 && roz_dyx == 32'd0 && roz_wrap)
+                    || (plane && !roz_wrap)) roz_unsupported <= 1'b1;
+                st <= S_R_SETUP1;
+            end
+            S_R_SETUP1: begin
+                roz_cx <= roz_sx0 + roz_mx;
+                roz_cy <= roz_sy0 + roz_my;
+                rx <= 9'd0;
+                tile_valid <= 1'b0;
+                st <= S_R_A;
+            end
+            S_R_A: begin
+                logic [9:0] tx, ty, tcol, trow;
+                tx = roz_cx[25:16] & tw_m1;
+                ty = roz_cy[25:16] & th_m1;
+                tcol = tx >> log2ts;
+                trow = ty >> log2ts;
+                r_col <= tcol[6:0];
+                r_row <= trow[6:0];
+                r_px <= tx[4:0] & ts_m1;
+                r_py <= ty[4:0] & ts_m1;
+                // unwrapped: only pixels inside the tilemap are drawn (unsigned compares)
+                r_inside <= roz_wrap || (roz_cx < {5'd0, {1'b0, tw_m1} + 11'd1, 16'd0} && roz_cy < {5'd0, {1'b0, th_m1} + 11'd1, 16'd0});
+                roz_cx <= roz_cx + roz_dx;       // incxx
+                roz_cy <= roz_cy + roz_dyx;      // incxy
+                st <= S_R_B;
+            end
+            S_R_B: begin
+                if (!r_inside) begin
+                    // not drawn: plane A's work bitmap stays 0 (copied unless CTPA); plane B is left as is
+                    if (!plane && !ctpa) begin lb_we <= 1'b1; lb_waddr <= {bank, rx}; lb_wdata <= 8'd0; end
+                    st <= (rx == 9'd287) ? S_PHASE : S_R_A;
+                    rx <= rx + 9'd1;
+                end else if (tile_valid && tile_col == r_col && tile_row == r_row) begin
+                    logic [4:0] pxf, pyf;
+                    pxf = tflipx ? (ts_m1 - r_px) : r_px;
+                    pyf = tflipy ? (ts_m1 - r_py) : r_py;
+                    if (!cur_8bpp) begin
+                        tb_raddr <= pts16 ? {1'b0, pyf[3], pxf[3], pyf[2:0]} : {3'b000, pyf[2:0]};
+                        r_pc <= pxf[2:0];
+                    end else begin
+                        tb_raddr <= pts16 ? {pyf[3], pxf[3], pyf[2:0], pxf[2]} : {2'b00, pyf[2:0], pxf[2]};
+                        r_pc <= {1'b0, pxf[1:0]};
+                    end
+                    st <= S_R_C;
+                end else begin
+                    logic [12:0] pnt_idx_v;
+                    col <= r_col;
+                    row <= r_row;
+                    pnt_idx_v = pnt_index(r_row, r_col, plane);
+                    pnt_addr <= pnt_idx_v[11:1];
+                    st <= S_T_PAGE0;                // -> S_T_PAGE1 -> S_T_CODE -> S_R_FETCH
+                end
+            end
+            S_R_C: st <= S_R_D;                     // tb_q follows tb_raddr by one clock
+            S_R_D: begin
+                logic [7:0] pen, idx; logic transp; logic [31:0] w;
+                w = tb_q << (cur_8bpp ? {r_pc[1:0], 3'b000} : {r_pc[2:0], 2'b00});
+                pen = cur_8bpp ? w[31:24] : {4'd0, w[31:28]};
+                idx = cur_8bpp ? pen : {colour, pen[3:0]};
+                if (plane) transp = ctpb && (idx == 8'd0);
+                else begin
+                    if (pen == border) idx = 8'd0;
+                    transp = ctpa && (idx == 8'd0);
+                end
+                if (!transp) begin lb_we <= 1'b1; lb_waddr <= {bank, rx}; lb_wdata <= idx; end
+                rx <= rx + 9'd1;
+                st <= (rx == 9'd287) ? S_PHASE : S_R_A;
+            end
+            S_R_FETCH: begin
+                logic [26:0] wa;
+                if (!cur_8bpp) wa = pts16 ? ({7'd0, code} << 5) : ({7'd0, code} << 3);
+                else           wa = pts16 ? ({7'd0, code} << 6) : ({7'd0, code} << 4);
+                pat_addr <= wa[20:0];
+                pat_len <= cur_8bpp ? (pts16 ? 7'd64 : 7'd16) : (pts16 ? 7'd32 : 7'd8);
+                pat_req <= 1'b1;
+                roz_fetch <= 1'b1;
+                st <= S_R_WAIT;
+            end
+            S_R_WAIT: begin
+                if (pat_ack) begin
+                    pat_req <= 1'b0; roz_fetch <= 1'b0;
+                    tile_valid <= 1'b1; tile_col <= col; tile_row <= row;
+                    st <= S_R_B;
+                end
             end
             S_DONE: begin
                 busy <= 1'b0; st <= S_IDLE;

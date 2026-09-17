@@ -78,6 +78,8 @@ jobs:
             echo "--- worst paths ---"
             docker run --rm -v "$PWD":/build -w /build raetro/quartus:pocket \
               quartus_sta -t projects/report_worst.tcl >/dev/null 2>&1 || true
+            echo "--- worst path into each block ---"
+            cat projects/output_files/worst_by_module.txt 2>/dev/null || true
             grep -E '^; (From|To) Node|^; Slack ' \
               projects/output_files/worst_paths.txt 2>/dev/null | head -30 || true
             echo "--- worst paths, cold corner ---"
@@ -121,4 +123,6 @@ jobs:
             projects/output_files/*.rpt
             projects/output_files/*.summary
             projects/output_files/worst_paths.txt
+            projects/output_files/worst_paths_cold.txt
+            projects/output_files/worst_by_module.txt
           if-no-files-found: ignore

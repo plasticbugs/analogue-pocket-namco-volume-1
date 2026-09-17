@@ -1,6 +1,6 @@
 # ==============================================================================
-# Gaiapolis on the Pocket: timing constraints beyond the BSP's sys_constr.sdc.
-# The 96 MHz system clock, its 8 MHz video pair and the shifted SDRAM clock
+# Namco ND-1 on the Pocket: timing constraints beyond the BSP's sys_constr.sdc.
+# The 96 MHz system clock, its 6.4 MHz video pair and the shifted SDRAM clock
 # all come from core_pll and are timed as one related group; the two 74.25 MHz
 # inputs and the audio PLL are asynchronous to it.
 # ==============================================================================
@@ -34,58 +34,40 @@ set_multicycle_path -setup 2 -from [get_clocks {dram_clk}] -to [get_registers {*
 set_multicycle_path -setup 3 -from [get_registers {*|sdram_ctrl:*|last[*]}] -to [get_registers {*|sdram_ctrl:*|*}]
 set_multicycle_path -hold  2 -from [get_registers {*|sdram_ctrl:*|last[*]}] -to [get_registers {*|sdram_ctrl:*|*}]
 
-# The pixel hand-over to the 8 MHz video clock: the colour and sync
-# registers are launched two system clocks before the clk_vid edge that
-# samples them (core_top.sv, clk_enables.sv), so the setup check starts
-# from that launch edge; the toggle the other way (vt -> vt_s) is a plain
-# flop-to-flop path checked at the 5.2 ns edge relationship as it stands.
+# The pixel hand-over to the 6.4 MHz video clock. clk_vid is clk_sys / 15 with
+# its edges half a system period after a clk_sys edge. core_top's pix_sync
+# reloads the pixel divider two clocks after each clk_vid edge is seen, so
+# cen_pix is high in the fifth system cycle after the edge and the VDP's
+# colour and sync registers (rtl/ygv608.sv output stage, the only logic ahead
+# of the overlay mux) change at the sixth system edge, 9.5 system periods
+# before the next clk_vid edge. The launch is therefore 9 system edges before
+# the default one; 8 is taken, keeping a clock of margin.
+set CLK_SYS [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}]
 set VID_OUT [get_registers {ic|vr_q[*] ic|vg_q[*] ic|vb_q[*] ic|vhs_q ic|vvs_q ic|vde_q}]
-set_multicycle_path -setup 3 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
-set_multicycle_path -hold  2 -start -from [get_clocks {ic|core_pll|core_pll_inst|altera_pll_i|general[0].gpll~PLL_OUTPUT_COUNTER|divclk}] -to $VID_OUT
+set_multicycle_path -setup 8 -start -from $CLK_SYS -to $VID_OUT
+set_multicycle_path -hold  7 -start -from $CLK_SYS -to $VID_OUT
 
-# PSRAM: an asynchronous interface driven by a state machine that holds every
-# pin for whole system cycles with tens of nanoseconds of margin
-# (target/pocket/psram.sv), so the pins are not timed against a clock.
-set_false_path -to   [get_ports {cram0_* cram1_*}]
-set_false_path -from [get_ports {cram0_dq[*] cram1_dq[*] cram0_wait cram1_wait}]
+# PSRAM and SRAM are not used; their pins are constants.
+set_false_path -to   [get_ports {cram0_* cram1_* sram_*}]
+set_false_path -from [get_ports {cram0_dq[*] cram1_dq[*] cram0_wait cram1_wait sram_dq[*]}]
 
-# TG68K: the kernel steps on a clock enable, at most one step every 4 cycles
-set_multicycle_path -setup 4 -from [get_registers {*|TG68KdotC_Kernel:*|*}] -to [get_registers {*|TG68KdotC_Kernel:*|*}]
-set_multicycle_path -hold  3 -from [get_registers {*|TG68KdotC_Kernel:*|*}] -to [get_registers {*|TG68KdotC_Kernel:*|*}]
+# H8/300H core (rtl/h8300h.sv, h8300h_core): every register it holds is written
+# only on cen_h8, which rtl/clk_enables.sv makes with a 64/375 accumulator, so
+# consecutive enables are 5 or 6 system clocks apart. Its inputs from the
+# per-clock side are sampled on the enable and used from the next one. The
+# divider results it reads (h8300h div_q/div_rem) settle 34 clocks after a
+# start and are read at least a dozen H8 states later.
+set H8CORE [get_registers {*|h8300h_core:*|*}]
+set_multicycle_path -setup 5 -from $H8CORE -to $H8CORE
+set_multicycle_path -hold  4 -from $H8CORE -to $H8CORE
+set H8DIV [get_registers {*|h8300h:*|div_q[*] *|h8300h:*|div_rem[*]}]
+set_multicycle_path -setup 5 -from $H8DIV -to $H8CORE
+set_multicycle_path -hold  4 -from $H8DIV -to $H8CORE
 
-# SRAM: the same treatment -- registered pins held for whole cycles, a read
-# sampled three cycles after the address (target/pocket/gaia_mem.sv sram_port)
-set_false_path -to   [get_ports {sram_*}]
-set_false_path -from [get_ports {sram_dq[*]}]
-
-# The scan-out pipeline -- the line-buffer reads, the K055555 priority
-# encoder, the palette read and the RGB stage -- re-evaluates once per 8 MHz
-# pixel, twelve clocks apart, and its registers latch only at fixed phases
-# inside the pixel (k055555_mixer.sv: the address at phase 5, the colour at
-# 9), so a path really has those clocks. Registers that clock every cycle
-# must never be given a multicycle on that reasoning alone: the first
-# Pocket build did and showed noise.
-set MIX [get_registers {*|k055555_mixer:*|*}]
-set_multicycle_path -setup 4 -to $MIX
-set_multicycle_path -hold  3 -to $MIX
-set PAL [get_registers {*|gaia_main:*|pal_rd_q*}]
-set_multicycle_path -setup 4 -to $PAL
-set_multicycle_path -hold  3 -to $PAL
-
-# TG68K to the board: the kernel's address, data and bus-state outputs settle
-# after a clkena step and are sampled only after gaia_main's three-clock gap
-# (step_gap), so the decode and the block-RAM write ports have three cycles
-# (keepers, not registers: the kernel's register file and the board's RAMs
-# are M10K cells, which get_registers does not match)
-set_multicycle_path -setup 3 -from [get_keepers {*|TG68KdotC_Kernel:*|*}] -to [get_keepers {*|gaia_main:*|*}]
-set_multicycle_path -hold  2 -from [get_keepers {*|TG68KdotC_Kernel:*|*}] -to [get_keepers {*|gaia_main:*|*}]
-
-# The Z80 (tv80) steps on cen_8m, one clock in twelve: its registers, and
-# the sound board's registers and RAM ports it drives, change only at those
-# steps, and what the board hands back (data, wait) is sampled only there
-set Z80 [get_keepers {*|tv80s_cen:*|*}]
-set SND [get_keepers {*|gaia_sound:*|*}]
-set_multicycle_path -setup 4 -from $Z80 -to $SND
-set_multicycle_path -hold  3 -from $Z80 -to $SND
-set_multicycle_path -setup 4 -from $SND -to $Z80
-set_multicycle_path -hold  3 -from $SND -to $Z80
+# fx68k: both phases advance only on cen_phi1/cen_phi2, which rtl/clk_enables.sv
+# makes with a 32/125 accumulator, so successive phase pulses are 3 or 4 system
+# clocks apart. Registers only (the microcode ROM reads stay single-cycle), as
+# the Xenophobe core does at 2 cycles.
+set FX [get_registers {*|fx68k:*|*}]
+set_multicycle_path -setup 3 -from $FX -to $FX
+set_multicycle_path -hold  2 -from $FX -to $FX

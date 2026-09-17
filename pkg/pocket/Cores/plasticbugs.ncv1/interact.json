@@ -96,6 +96,17 @@
         "defaultval": 0,
         "mask": "0xFFFFFEFF",
         "value": "0x00000100"
+      },
+      {
+        "name": "Diagnostic Overlay",
+        "id": 64,
+        "type": "check",
+        "enabled": true,
+        "persist": false,
+        "address": "0xF2000000",
+        "defaultval": 0,
+        "value": "0x00000008",
+        "mask": "0xFFFFFFF7"
       }
     ],
     "messages": []

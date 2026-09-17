@@ -398,6 +398,7 @@ module core_top
     wire  [7:0] dl_data  = ioctl_data;
     wire        prog_req, prog_ack, sub_req, sub_ack, pat_req, pat_ack, pcm_req, pcm_ack;
     wire [19:1] prog_addr; wire [18:1] sub_addr; wire [20:0] pat_addr; wire [23:0] pcm_addr;
+    wire  [6:0] pat_len; wire pat_wr; wire [5:0] pat_idx;
     wire [15:0] prog_q, sub_q; wire [31:0] pat_q; wire [7:0] pcm_q;
     ncv1_mem u_mem (
         .clk(clk_sys), .clk_sdram(clk_sdram), .init(mem_init), .ready(mem_ready),
@@ -406,6 +407,7 @@ module core_top
         .prog_addr(prog_addr), .prog_req(prog_req), .prog_ack(prog_ack), .prog_q(prog_q),
         .sub_addr(sub_addr), .sub_req(sub_req), .sub_ack(sub_ack), .sub_q(sub_q),
         .pat_addr(pat_addr), .pat_req(pat_req), .pat_ack(pat_ack), .pat_q(pat_q),
+        .pat_len(pat_len), .pat_wr(pat_wr), .pat_idx(pat_idx),
         .pcm_addr(pcm_addr), .pcm_req(pcm_req), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
         .dram_dq(dram_dq), .dram_a(dram_a), .dram_ba(dram_ba), .dram_dqm(dram_dqm),
         .dram_clk(dram_clk), .dram_cke(dram_cke), .dram_ras_n(dram_ras_n), .dram_cas_n(dram_cas_n), .dram_we_n(dram_we_n)
@@ -441,6 +443,7 @@ module core_top
         .prog_addr(prog_addr), .prog_req(prog_req), .prog_ack(prog_ack), .prog_q(prog_q),
         .sub_addr(sub_addr), .sub_req(sub_req), .sub_ack(sub_ack), .sub_q(sub_q),
         .pat_addr(pat_addr), .pat_req(pat_req), .pat_ack(pat_ack), .pat_q(pat_q),
+        .pat_len(pat_len), .pat_wr(pat_wr), .pat_idx(pat_idx),
         .pcm_addr(pcm_addr), .pcm_req(pcm_req), .pcm_ack(pcm_ack), .pcm_q(pcm_q),
         .eep_ld_we(nv_load_we), .eep_ld_addr(nv_dl_addr), .eep_ld_data(nv_dl_data),
         .eep_rd_addr(nv_rd_addr), .eep_rd_q(nv_rd_data), .eep_dirty(po_nv_dirty),

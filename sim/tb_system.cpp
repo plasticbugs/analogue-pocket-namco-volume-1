@@ -66,6 +66,7 @@ int main(int argc, char **argv) {
     // memory ports: each answers a fixed number of clocks after the request rises
     struct Port { int lat; int cnt; bool busy; } prog{9, 0, false}, sub{9, 0, false}, pat{12, 0, false}, pcm{9, 0, false};
     auto word_at = [&](uint32_t byte) -> uint16_t { return ((uint16_t)img[byte] << 8) | img[byte + 1]; };
+    int pat_n = 0; bool pat_last = false;
 
     std::vector<uint8_t> frame(288 * 224 * 3, 0);
     std::vector<int16_t> audio;
@@ -88,8 +89,18 @@ int main(int argc, char **argv) {
         int a;
         serve(prog, top->prog_req, a, [&]() { top->prog_q = word_at(0x000000 + (top->prog_addr << 1)); prog_fetches++; }); top->prog_ack = a;
         serve(sub,  top->sub_req,  a, [&]() { top->sub_q  = word_at(0x100000 + (top->sub_addr << 1));  sub_fetches++; });  top->sub_ack = a;
-        serve(pat,  top->pat_req,  a, [&]() { uint32_t b = 0x180000 + ((top->pat_addr & 0x7ffff) << 2);
-                                              top->pat_q = ((uint32_t)word_at(b) << 16) | word_at(b + 2); pat_fetches++; }); top->pat_ack = a;
+        // pattern ROM: bursts of pat_len units, the first after the port latency, then one every 4 clocks
+        top->pat_ack = 0; top->pat_wr = 0;
+        if (top->pat_req) {
+            if (!pat.busy) { pat.busy = true; pat.cnt = pat.lat; pat_n = 0; pat_last = false; }
+            else if (pat_last) { top->pat_ack = 1; }
+            else if (--pat.cnt == 0) {
+                uint32_t b = 0x180000 + (((top->pat_addr + pat_n) & 0x7ffff) << 2);
+                top->pat_q = ((uint32_t)word_at(b) << 16) | word_at(b + 2); pat_fetches++;
+                top->pat_wr = 1; top->pat_idx = pat_n;
+                if (++pat_n == top->pat_len) pat_last = true; else pat.cnt = 4;
+            }
+        } else pat.busy = false;
         serve(pcm,  top->pcm_req,  a, [&]() { uint32_t b = top->pcm_addr & 0xffffff; top->pcm_q = b < 0x200000 ? img[0x380000 + b] : 0; pcm_fetches++; }); top->pcm_ack = a;
         if (top->prog_ack) prog.busy = false; if (top->sub_ack) sub.busy = false; if (top->pat_ack) pat.busy = false; if (top->pcm_ack) pcm.busy = false;
 

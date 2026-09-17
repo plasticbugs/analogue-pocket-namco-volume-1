@@ -197,8 +197,8 @@ module h83002 (
         8'hf4: iscr <= d;
         8'hf5: ier <= d;
         8'hf6: isr <= isr & d;
-        8'hf8: icr[15:8] <= d;
-        8'hf9: icr[7:0] <= d;
+        8'hf8: icr[7:0] <= d;                 // MAME h8h_intc: offset 0 is the low byte (ICRA)
+        8'hf9: icr[15:8] <= d;
         default: ;
         endcase
         if (c != 3'd7) begin
@@ -240,8 +240,8 @@ module h83002 (
         8'hf4: io_read = iscr;
         8'hf5: io_read = ier;
         8'hf6: io_read = isr;
-        8'hf8: io_read = icr[15:8];
-        8'hf9: io_read = icr[7:0];
+        8'hf8: io_read = icr[7:0];
+        8'hf9: io_read = icr[15:8];
         8'had: io_read = 8'h80;                                // RTMCSR: CMF always set
         default: ;
         endcase
@@ -327,23 +327,16 @@ module h83002 (
         end
     end
 
-    // ---- vector selection (MAME update_irq_state): highest icr priority wins, then lowest vector
-    // ICR slot per vector (h8h_intc vector_to_slot), priority bit = icr >> (slot ^ 7)... MAME indexes
-    // m_icr as a 16-bit register with slot^7 addressing the low byte: slot 0 -> bit 7, slot 7 -> bit 0,
-    // slots 8-14 -> bits 15-9.
-    function automatic logic icr_pri(input logic [5:0] v);
-        logic [3:0] slot;
-        case (v)
-        6'd12: slot = 4'd0; 6'd13: slot = 4'd1; 6'd14, 6'd15: slot = 4'd2; 6'd16, 6'd17, 6'd18, 6'd19: slot = 4'd3;
-        6'd20, 6'd21, 6'd22, 6'd23: slot = 4'd4;
-        6'd24, 6'd25, 6'd26, 6'd27: slot = 4'd5; 6'd28, 6'd29, 6'd30, 6'd31: slot = 4'd6;
-        6'd32, 6'd33, 6'd34, 6'd35: slot = 4'd7; 6'd36, 6'd37, 6'd38, 6'd39: slot = 4'd8;
-        6'd40, 6'd41, 6'd42, 6'd43: slot = 4'd9; 6'd44, 6'd45, 6'd46, 6'd47: slot = 4'd10;
-        6'd48, 6'd49, 6'd50, 6'd51: slot = 4'd11; 6'd52, 6'd53, 6'd54, 6'd55: slot = 4'd12;
-        6'd56, 6'd57, 6'd58, 6'd59: slot = 4'd13; 6'd60, 6'd61, 6'd62, 6'd63: slot = 4'd14;
-        default: slot = 4'd15;
-        endcase
-        icr_pri = (slot == 4'd15) ? 1'b0 : icr[slot ^ 4'd7];
+    // ---- vector selection (MAME update_irq_state): among pending vectors that pass the
+    // filter, the highest ICR priority wins, then the lowest vector number. ICR slot per
+    // vector as h8h_intc's vector_to_slot; the priority bit is icr[slot ^ 7] (slot 0 = ICRA
+    // bit 7, slot 7 = ICRA bit 0, slots 8-14 = ICRB bits 15-9).
+    function automatic logic [3:0] vec_slot(input int v);
+        if (v == 12) vec_slot = 4'd0;
+        else if (v == 13) vec_slot = 4'd1;
+        else if (v == 14 || v == 15) vec_slot = 4'd2;
+        else if (v >= 16 && v <= 63) vec_slot = 4'((v - 16) / 4 + 3);
+        else vec_slot = 4'd15;
     endfunction
 
     // filter (h83002 update_irq_filter): SYSCR UE (bit 3) set: I blocks everything but NMI;
@@ -356,22 +349,30 @@ module h83002 (
         else filt = 2'd0;
     end
 
-    logic [63:0] pend_all;
+    logic [63:0] pend_all, pri_mask, elig_hi, elig_lo;
     always_comb begin
         pend_all = pend;
         for (int i = 0; i < 8; i++) pend_all[12 + i] = isr[i] & ier[i];
-    end
-    always_comb begin
-        logic found; logic [1:0] best; logic [1:0] pri;
-        irq_vector = 8'd0; found = 1'b0; best = 2'd0; pri = 2'd0;
-        for (int v = 1; v < 64; v++) begin
-            pri = {1'b0, icr_pri(v[5:0])};
-            if (pend_all[v]) begin
-                if (filt != 2'd2 && (filt == 2'd0 || pri == 2'd1)) begin
-                    if (!found || pri > best) begin irq_vector = v[7:0]; best = pri; found = 1'b1; end
-                end
-            end
+        for (int v = 0; v < 64; v++) begin
+            logic [3:0] sl;
+            sl = vec_slot(v);
+            pri_mask[v] = (sl == 4'd15) ? 1'b0 : icr[sl ^ 4'd7];
         end
+        elig_hi = (filt != 2'd2) ? (pend_all & pri_mask) : 64'd0;
+        elig_lo = (filt == 2'd0) ? (pend_all & ~pri_mask) : 64'd0;
+        elig_hi[0] = 1'b0; elig_lo[0] = 1'b0;
+    end
+    function automatic logic [6:0] lowest(input logic [63:0] m);   // {found, index}
+        lowest = 7'd0;
+        for (int v = 63; v >= 0; v--) if (m[v]) lowest = {1'b1, 6'(v)};
+    endfunction
+    // registered: the core samples it on its enable, a clock late is invisible
+    always_ff @(posedge clk) begin
+        logic [6:0] hi, lo;
+        hi = lowest(elig_hi);
+        lo = lowest(elig_lo);
+        if (reset) irq_vector <= 8'd0;
+        else irq_vector <= hi[6] ? {2'b00, hi[5:0]} : lo[6] ? {2'b00, lo[5:0]} : 8'd0;
     end
 
     // registered read data

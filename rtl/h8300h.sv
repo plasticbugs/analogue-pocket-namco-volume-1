@@ -26,27 +26,36 @@
 //------------------------------------------------------------------------------
 `default_nettype none
 
-module h8300h (
+module h8300h_core (
     input  logic        clk,
     input  logic        reset,
     input  logic        cen,
 
-    output logic [23:0] bus_addr,
-    output logic        bus_rd,
-    output logic        bus_wr,
-    output logic        bus_word,
-    output logic [15:0] bus_wdata,
-    input  logic [15:0] bus_rdata,
-    input  logic        bus_ack,
+    // bus requests: a new request each time req_tog changes (h8300h issues it)
+    output logic [23:0] nreq_addr,
+    output logic        nreq_rd,
+    output logic        nreq_wr,
+    output logic        nreq_word,
+    output logic [15:0] nreq_wdata,
+    output logic        req_tog,
+    input  logic [15:0] mdata_in,       // last read data (changes on any clock)
+    input  logic        bus_done_in,    // the last request was acknowledged
 
-    input  logic  [7:0] irq_vector,
-    output logic        irq_ack,
+    input  logic  [7:0] irq_vector_in,
+    output logic        irq_ack_tog,
     output logic  [7:0] irq_ack_vector,
     output logic  [7:0] ccr_out,
 
-    output logic        dbg_istart,
+    // divider (runs in h8300h): operands and a start toggle out, results in
+    output logic        dv_tog,
+    output logic [31:0] dv_n,
+    output logic [15:0] dv_d,
+    input  logic [31:0] dv_q,
+    input  logic [31:0] dv_rem,
+
+    output logic        istart_tog,
     output logic [23:0] dbg_pc,
-    output logic        dbg_irq,
+    output logic        irq_tog,
     output logic [23:0] dbg_npc,
     output logic [31:0] dbg_er0, dbg_er1, dbg_er2, dbg_er3, dbg_er4, dbg_er5, dbg_er6, dbg_er7,
     output logic        dbg_sleep
@@ -140,8 +149,12 @@ module h8300h (
     logic  [4:0] d_extra;       // internal states (already n+1)
 
     logic [15:0] ir_eff [5];
+    // Everything below is written only on `cen` (at least 5 clocks apart), so the
+    // sequencer's paths are 5-cycle paths (projects/ncv1_pocket.sdc). Inputs that
+    // change on other clocks are sampled on `cen` and used from the next one.
     logic        bus_done;
     logic [15:0] mdata;
+    logic  [7:0] irq_vector;
     always_comb begin
         for (int i = 0; i < 5; i++)
             ir_eff[i] = (state == S_BUS && ret_state == S_FETCHW && nw == 3'(i)) ? mdata : ir[i];
@@ -609,10 +622,7 @@ module h8300h (
 
     // ------------------------------------------------------------ divider (sequential, restoring)
     // DIVXU/DIVXS run at clk rate inside the instruction's internal states.
-    logic        div_busy, div_signed;
-    logic [31:0] div_rem, div_q, div_n_abs;
-    logic [15:0] div_d_abs;
-    logic  [5:0] div_cnt;
+    logic        div_signed;
     logic        div_neg_q, div_neg_r;
     logic        div_wide;      // 1: 32/16, 0: 16/8
 
@@ -638,19 +648,16 @@ module h8300h (
     // request memories need), completes at the second state after issue at the
     // earliest, and its continuation runs in that completing state -- so every
     // access costs exactly 2 states when the memory answers in time, as in MAME.
-    logic        bus_pend, nreq_rd, nreq_wr, nreq_word;
-    logic [23:0] nreq_addr;
-    logic [15:0] nreq_wdata;
     logic        bus_cnt;                     // a state has passed since issue
 
     task automatic start_read(input logic [23:0] a, input logic word, input state_t rs, input logic [4:0] rstep);
-        nreq_addr <= a; nreq_word <= word; nreq_rd <= 1'b1; nreq_wr <= 1'b0; bus_pend <= 1'b1;
-        bus_rd <= 1'b0; bus_wr <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0;
+        nreq_addr <= a; nreq_word <= word; nreq_rd <= 1'b1; nreq_wr <= 1'b0; req_tog <= ~req_tog;
+        bus_cnt <= 1'b0;
         ret_state <= rs; ret_step <= rstep; state <= S_BUS;
     endtask
     task automatic start_write(input logic [23:0] a, input logic word, input logic [15:0] d, input state_t rs, input logic [4:0] rstep);
-        nreq_addr <= a; nreq_word <= word; nreq_wdata <= word ? d : {d[7:0], d[7:0]}; nreq_rd <= 1'b0; nreq_wr <= 1'b1; bus_pend <= 1'b1;
-        bus_rd <= 1'b0; bus_wr <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0;
+        nreq_addr <= a; nreq_word <= word; nreq_wdata <= word ? d : {d[7:0], d[7:0]}; nreq_rd <= 1'b0; nreq_wr <= 1'b1; req_tog <= ~req_tog;
+        bus_cnt <= 1'b0;
         ret_state <= rs; ret_step <= rstep; state <= S_BUS;
     endtask
     task automatic go_wait(input logic [4:0] n, input state_t rs, input logic [4:0] rstep);
@@ -683,14 +690,14 @@ module h8300h (
     // p = the address of the next instruction (usually pc; a jump passes its target)
     task automatic finish(input logic [23:0] p);
         if (irq_vector != 8'd0 && !noirq) begin
-            cur_vec <= irq_vector; irq_ack <= 1'b1; irq_ack_vector <= irq_vector;
-            dbg_irq <= 1'b1; dbg_npc <= p;
+            cur_vec <= irq_vector; irq_ack_tog <= ~irq_ack_tog; irq_ack_vector <= irq_vector;
+            irq_tog <= ~irq_tog; dbg_npc <= p;
             tmp2 <= {8'd0, p};
             pc <= p;
             go_wait(5'd2, S_IRQ, 5'd1);           // internal(1)
         end else begin
             noirq <= 1'b0;
-            dbg_istart <= 1'b1; dbg_pc <= p;
+            istart_tog <= ~istart_tog; dbg_pc <= p;
             nw <= 3'd0;
             start_read(p, 1'b1, S_FETCHW, 5'd0);
             pc <= p + 24'd2;
@@ -715,8 +722,7 @@ module h8300h (
                     else begin dneg = dd[15]; dd = dneg ? (16'd0 - dd) : dd; end
                 end else begin nneg = 1'b0; dneg = 1'b0; end
                 div_signed <= (d_op == HO_DIVXS);
-                div_n_abs <= n; div_d_abs <= dd; div_rem <= 32'd0; div_q <= 32'd0;
-                div_cnt <= 6'd32; div_busy <= 1'b1;
+                dv_n <= n; dv_d <= dd; dv_tog <= ~dv_tog;
                 div_neg_q <= nneg ^ dneg; div_neg_r <= nneg;
                 div_wide <= (d_sz == 2'd1);
                 tmp1 <= {16'd0, dd};
@@ -760,11 +766,11 @@ module h8300h (
                 ccr[F_N] <= div_signed ? 1'b0 : tmp1[7];
             end else begin
                 logic [15:0] q, rr;
-                q  = div_neg_q ? (16'd0 - div_q[15:0]) : div_q[15:0];
-                rr = div_neg_r ? (16'd0 - div_rem[15:0]) : div_rem[15:0];
+                q  = div_neg_q ? (16'd0 - dv_q[15:0]) : dv_q[15:0];
+                rr = div_neg_r ? (16'd0 - dv_rem[15:0]) : dv_rem[15:0];
                 ccr[F_Z] <= 1'b0;
                 // MAME: DIVXU sets N from bit 7 of the divisor (both sizes); DIVXS from the quotient sign
-                ccr[F_N] <= div_signed ? (div_neg_q && div_q != 32'd0) : tmp1[7];
+                ccr[F_N] <= div_signed ? (div_neg_q && dv_q != 32'd0) : tmp1[7];
                 if (div_wide) er[d_rd[2:0]] <= {rr, q};
                 else w16(d_rd, {rr[7:0], q[7:0]});
             end
@@ -932,55 +938,36 @@ module h8300h (
 
     // ------------------------------------------------------------ main sequencer
     always_ff @(posedge clk) begin
-        dbg_istart <= 1'b0; dbg_irq <= 1'b0; irq_ack <= 1'b0;
         if (reset) begin
             state <= S_RESET0; step <= 5'd0; nw <= 3'd0; noirq <= 1'b0;
-            bus_rd <= 1'b0; bus_wr <= 1'b0; bus_addr <= 24'd0; bus_word <= 1'b0; bus_wdata <= 16'd0;
-            bus_pend <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0;
+            bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0; irq_vector <= 8'd0;
+            req_tog <= 1'b0; irq_ack_tog <= 1'b0; irq_ack_vector <= 8'd0; istart_tog <= 1'b0; irq_tog <= 1'b0;
+            dv_tog <= 1'b0; dv_n <= 32'd0; dv_d <= 16'd0; dbg_pc <= 24'd0; dbg_npc <= 24'd0;
+            div_signed <= 1'b0; div_neg_q <= 1'b0; div_neg_r <= 1'b0; div_wide <= 1'b0;
             nreq_rd <= 1'b0; nreq_wr <= 1'b0; nreq_word <= 1'b0; nreq_addr <= 24'd0; nreq_wdata <= 16'd0;
-            pc <= 24'd0; ccr <= 8'h80; div_busy <= 1'b0; dbg_sleep <= 1'b0; wait_n <= 5'd0;
+            pc <= 24'd0; ccr <= 8'h80; dbg_sleep <= 1'b0; wait_n <= 5'd0;
             ret_state <= S_FETCH; ret_step <= 5'd0; cur_vec <= 8'd0; ea <= 24'd0; tmp1 <= 32'd0; tmp2 <= 32'd0;
             for (int i = 0; i < 8; i++) er[i] <= 32'd0;
             for (int i = 0; i < 5; i++) ir[i] <= 16'd0;
-        end else begin
-            // ---- bus: issue the pending request, track its acknowledge
-            if (bus_pend) begin
-                bus_addr <= nreq_addr; bus_word <= nreq_word; bus_wdata <= nreq_wdata;
-                bus_rd <= nreq_rd; bus_wr <= nreq_wr; bus_pend <= 1'b0;
+        end else if (cen) begin
+            // inputs from the per-clock side, used from the next state on
+            bus_done <= bus_done_in; mdata <= mdata_in; irq_vector <= irq_vector_in;
+            case (state)
+            S_BUS: begin
+                if (bus_done && bus_cnt) dispatch(ret_state, ret_step);
+                else bus_cnt <= 1'b1;
             end
-            if ((bus_rd || bus_wr) && bus_ack) begin bus_done <= 1'b1; mdata <= bus_rdata; bus_rd <= 1'b0; bus_wr <= 1'b0; end
-
-            // ---- divider runs at clk rate while the instruction spends its internal states
-            if (div_busy) begin
-                if (div_cnt == 6'd0) div_busy <= 1'b0;
-                else begin
-                    logic [32:0] t;
-                    t = {div_rem[31:0], div_n_abs[31]} - {17'd0, div_d_abs};
-                    div_n_abs <= {div_n_abs[30:0], 1'b0};
-                    if (!t[32]) begin div_rem <= t[31:0]; div_q <= {div_q[30:0], 1'b1}; end
-                    else begin div_rem <= {div_rem[30:0], div_n_abs[31]}; div_q <= {div_q[30:0], 1'b0}; end
-                    div_cnt <= div_cnt - 6'd1;
-                end
+            S_WAIT: begin
+                if (wait_n <= 5'd1) dispatch(ret_state, ret_step);
+                else wait_n <= wait_n - 5'd1;
             end
-
-            if (cen) begin
-                case (state)
-                S_BUS: begin
-                    if (bus_done && bus_cnt) dispatch(ret_state, ret_step);
-                    else bus_cnt <= 1'b1;
-                end
-                S_WAIT: begin
-                    if (wait_n <= 5'd1) dispatch(ret_state, ret_step);
-                    else wait_n <= wait_n - 5'd1;
-                end
-                S_RESET0: begin ccr <= ccr | 8'h80; start_read(24'd0, 1'b1, S_RESET1, 5'd0); end
-                S_FETCH:  finish(pc);
-                S_EXEC:   exec_step(step, ea);
-                S_IRQ:    irq_step(step);
-                S_SLEEP:  begin if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
-                default:  state <= S_FETCH;
-                endcase
-            end
+            S_RESET0: begin ccr <= ccr | 8'h80; start_read(24'd0, 1'b1, S_RESET1, 5'd0); end
+            S_FETCH:  finish(pc);
+            S_EXEC:   exec_step(step, ea);
+            S_IRQ:    irq_step(step);
+            S_SLEEP:  begin if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
+            default:  state <= S_FETCH;
+            endcase
         end
     end
 
@@ -1002,5 +989,98 @@ module h8300h (
     end
 
     // unused
-    wire _unused = &{1'b0, ir4[0], tmp2[31:24], bitreg_v[7:3]};
+    wire _unused = &{1'b0, ir4[0], tmp2[31:24], bitreg_v[7:3], dv_rem[31:16]};
+endmodule
+
+
+//------------------------------------------------------------------------------
+// h8300h: the core plus everything that runs on every clock -- issuing bus
+// requests, capturing acknowledges, the restoring divider and the one-clock
+// pulses. Keeping these out of h8300h_core is what makes the core's multicycle
+// constraint valid.
+//------------------------------------------------------------------------------
+module h8300h (
+    input  logic        clk,
+    input  logic        reset,
+    input  logic        cen,
+
+    output logic [23:0] bus_addr,
+    output logic        bus_rd,
+    output logic        bus_wr,
+    output logic        bus_word,
+    output logic [15:0] bus_wdata,
+    input  logic [15:0] bus_rdata,
+    input  logic        bus_ack,
+
+    input  logic  [7:0] irq_vector,
+    output logic        irq_ack,
+    output logic  [7:0] irq_ack_vector,
+    output logic  [7:0] ccr_out,
+
+    output logic        dbg_istart,
+    output logic [23:0] dbg_pc,
+    output logic        dbg_irq,
+    output logic [23:0] dbg_npc,
+    output logic [31:0] dbg_er0, dbg_er1, dbg_er2, dbg_er3, dbg_er4, dbg_er5, dbg_er6, dbg_er7,
+    output logic        dbg_sleep
+);
+    logic [23:0] nreq_addr;
+    logic        nreq_rd, nreq_wr, nreq_word, req_tog, req_tog_d;
+    logic [15:0] nreq_wdata, mdata;
+    logic        bus_done;
+    logic        irq_ack_tog, irq_ack_tog_d, istart_tog, istart_tog_d, irq_tog, irq_tog_d;
+    logic        dv_tog, dv_tog_d;
+    logic [31:0] dv_n;
+    logic [15:0] dv_d;
+    logic [31:0] div_q, div_rem, div_n_abs;
+    logic [15:0] div_d_abs;
+    logic  [5:0] div_cnt;
+
+    h8300h_core core (
+        .clk(clk), .reset(reset), .cen(cen),
+        .nreq_addr(nreq_addr), .nreq_rd(nreq_rd), .nreq_wr(nreq_wr), .nreq_word(nreq_word), .nreq_wdata(nreq_wdata),
+        .req_tog(req_tog), .mdata_in(mdata), .bus_done_in(bus_done),
+        .irq_vector_in(irq_vector), .irq_ack_tog(irq_ack_tog), .irq_ack_vector(irq_ack_vector), .ccr_out(ccr_out),
+        .dv_tog(dv_tog), .dv_n(dv_n), .dv_d(dv_d), .dv_q(div_q), .dv_rem(div_rem),
+        .istart_tog(istart_tog), .dbg_pc(dbg_pc), .irq_tog(irq_tog), .dbg_npc(dbg_npc),
+        .dbg_er0(dbg_er0), .dbg_er1(dbg_er1), .dbg_er2(dbg_er2), .dbg_er3(dbg_er3),
+        .dbg_er4(dbg_er4), .dbg_er5(dbg_er5), .dbg_er6(dbg_er6), .dbg_er7(dbg_er7),
+        .dbg_sleep(dbg_sleep)
+    );
+
+    assign dbg_istart = istart_tog ^ istart_tog_d;
+    assign dbg_irq    = irq_tog ^ irq_tog_d;
+    assign irq_ack    = irq_ack_tog ^ irq_ack_tog_d;
+
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            bus_addr <= 24'd0; bus_rd <= 1'b0; bus_wr <= 1'b0; bus_word <= 1'b0; bus_wdata <= 16'd0;
+            mdata <= 16'd0; bus_done <= 1'b0; req_tog_d <= 1'b0;
+            irq_ack_tog_d <= 1'b0; istart_tog_d <= 1'b0; irq_tog_d <= 1'b0;
+            dv_tog_d <= 1'b0; div_q <= 32'd0; div_rem <= 32'd0; div_n_abs <= 32'd0; div_d_abs <= 16'd0; div_cnt <= 6'd0;
+        end else begin
+            irq_ack_tog_d <= irq_ack_tog; istart_tog_d <= istart_tog; irq_tog_d <= irq_tog;
+            // acknowledge of the standing request
+            if ((bus_rd || bus_wr) && bus_ack) begin bus_done <= 1'b1; mdata <= bus_rdata; bus_rd <= 1'b0; bus_wr <= 1'b0; end
+            // a new request from the core
+            if (req_tog != req_tog_d) begin
+                req_tog_d <= req_tog;
+                bus_addr <= nreq_addr; bus_word <= nreq_word; bus_wdata <= nreq_wdata;
+                bus_rd <= nreq_rd; bus_wr <= nreq_wr; bus_done <= 1'b0;
+            end
+            // restoring division, one quotient bit per clock (MSB first); the core reads the
+            // result at least a dozen states after starting it
+            if (dv_tog != dv_tog_d) begin
+                dv_tog_d <= dv_tog;
+                div_n_abs <= dv_n; div_d_abs <= dv_d; div_rem <= 32'd0; div_q <= 32'd0; div_cnt <= 6'd32;
+            end else if (div_cnt != 6'd0) begin
+                logic [32:0] t;
+                t = {div_rem[31:0], div_n_abs[31]} - {17'd0, div_d_abs};
+                div_n_abs <= {div_n_abs[30:0], 1'b0};
+                if (!t[32]) begin div_rem <= t[31:0]; div_q <= {div_q[30:0], 1'b1}; end
+                else begin div_rem <= {div_rem[30:0], div_n_abs[31]}; div_q <= {div_q[30:0], 1'b0}; end
+                div_cnt <= div_cnt - 6'd1;
+            end
+        end
+    end
 endmodule

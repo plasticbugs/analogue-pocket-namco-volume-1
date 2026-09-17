@@ -10,7 +10,7 @@ verilator --version >/dev/null 2>&1 || { echo "verilator not found"; exit 2; }
 PROBE=$(mktemp -d)
 trap 'rm -rf "$PROBE"' EXIT
 echo 'module lintprobe; endmodule' > "$PROBE/lintprobe.v"
-WANT="DECLFILENAME UNOPTFLAT PINCONNECTEMPTY PINMISSING GENUNNAMED TIMESCALEMOD BLKANDNBLK MULTIDRIVEN"
+WANT="DECLFILENAME UNOPTFLAT PINCONNECTEMPTY PINMISSING GENUNNAMED TIMESCALEMOD BLKANDNBLK MULTIDRIVEN INITIALDLY"
 FLAGS="-Wall -Irtl +1364-2005ext+v sim/waivers.vlt"
 for w in $WANT; do
     if verilator --lint-only "-Wno-$w" "$PROBE/lintprobe.v" >/dev/null 2>&1; then
