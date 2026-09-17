@@ -154,7 +154,6 @@ module h8300h_core (
     // change on other clocks are sampled on `cen` and used from the next one.
     logic        bus_done;
     logic [15:0] mdata;
-    logic  [7:0] irq_vector;
     always_comb begin
         for (int i = 0; i < 5; i++)
             ir_eff[i] = (state == S_BUS && ret_state == S_FETCHW && nw == 3'(i)) ? mdata : ir[i];
@@ -689,12 +688,16 @@ module h8300h_core (
     // ------------------------------------------------------------ instruction boundary
     // p = the address of the next instruction (usually pc; a jump passes its target)
     task automatic finish(input logic [23:0] p);
-        if (irq_vector != 8'd0 && !noirq) begin
-            cur_vec <= irq_vector; irq_ack_tog <= ~irq_ack_tog; irq_ack_vector <= irq_vector;
+        // straight from the controller, not the sampled copy: MAME takes an interrupt in the
+        // state its source raises it (see rtl/h83002.sv's vector selection)
+        if (irq_vector_in != 8'd0 && !noirq) begin
+            cur_vec <= irq_vector_in; irq_ack_tog <= ~irq_ack_tog; irq_ack_vector <= irq_vector_in;
             irq_tog <= ~irq_tog; dbg_npc <= p;
             tmp2 <= {8'd0, p};
             pc <= p;
-            go_wait(5'd2, S_IRQ, 5'd1);           // internal(1)
+            // MAME has already prefetched the opcode at p (2 states, discarded) when it
+            // decides to take the interrupt; then internal(1): 4 states before the pushes
+            go_wait(5'd4, S_IRQ, 5'd1);
         end else begin
             noirq <= 1'b0;
             istart_tog <= ~istart_tog; dbg_pc <= p;
@@ -835,25 +838,40 @@ module h8300h_core (
             5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea_in + 24'd2, 1'b1, S_EXEC, 5'd3); end
             default: begin pc <= {tmp1[7:0], mdata}; go_wait(5'd2, S_FETCH, 5'd0); end
         endcase
-        // ---- JSR / BSR: (dummy or target prefetch), push the return address high word then low, then run
+        // ---- JSR / BSR: (fetch_noinc dummy / memory-indirect target read), push the return
+        // address high word then low, then run. MAME's jsr32 prefetches at the target
+        // before the pushes; here that fetch is the next instruction's own opcode read,
+        // so no state is spent on it (h8.lst: jsr abs24 and bsr rel16 are 10 states, bsr
+        // rel8 and jsr @ern 8, jsr @@aa:8 12, each counting its own opcode prefetch).
         G_JSR, G_BSR: case (st)
             5'd0: begin
                 tmp2 <= {8'd0, pc};      // return address
                 case (d_grp == G_BSR ? EA_NONE : d_ea)
                 EA_IND:   begin tmp1 <= {8'd0, ea_in}; go_wait(5'd2, S_EXEC, 5'd3); end          // fetch_noinc dummy
-                EA_ABS24: begin pc <= ea_in; go_wait(5'd2, S_EXEC, 5'd4); end                    // internal spent; prefetch at target
-                EA_IND8:  go_wait(5'd2, S_EXEC, 5'd1);
+                EA_ABS24: begin                                                                   // internal(1) already spent
+                    pc <= ea_in;
+                    er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, pc[23:16]}, S_EXEC, 5'd5);
+                end
+                EA_IND8:  go_wait(5'd2, S_EXEC, 5'd1);                                            // fetch_noinc dummy
                 default:  begin // BSR: target = pc + disp
-                    if (d_extra == 5'd0) begin tmp1 <= {8'd0, pc + d_ival[23:0]}; go_wait(5'd2, S_EXEC, 5'd3); end
-                    else begin pc <= pc + d_ival[23:0]; go_wait(5'd2, S_EXEC, 5'd4); end
+                    if (d_extra == 5'd0) begin tmp1 <= {8'd0, pc + d_ival[23:0]}; go_wait(5'd2, S_EXEC, 5'd3); end   // rel8: fetch_noinc dummy
+                    else begin                                                                                        // rel16: internal(1) already spent
+                        pc <= pc + d_ival[23:0];
+                        er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, pc[23:16]}, S_EXEC, 5'd5);
+                    end
                 end
                 endcase
             end
             5'd1: start_read(ea_in, 1'b1, S_EXEC, 5'd2);
             5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea_in + 24'd2, 1'b1, S_EXEC, 5'd6); end
-            5'd6: begin pc <= {tmp1[7:0], mdata}; go_wait(5'd2, S_EXEC, 5'd4); end
-            5'd3: begin pc <= tmp1[23:0]; go_wait(5'd2, S_EXEC, 5'd4); end      // prefetch at the target
-            5'd4: begin er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, tmp2[23:16]}, S_EXEC, 5'd5); end
+            5'd6: begin
+                pc <= {tmp1[7:0], mdata};
+                er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, tmp2[23:16]}, S_EXEC, 5'd5);
+            end
+            5'd3: begin
+                pc <= tmp1[23:0];
+                er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, tmp2[23:16]}, S_EXEC, 5'd5);
+            end
             default: start_write(er[7][23:0] + 24'd2, 1'b1, tmp2[15:0], S_FETCH, 5'd0);
         endcase
         // ---- RTS: dummy fetch, pop PC (high word first), internal, prefetch
@@ -940,7 +958,7 @@ module h8300h_core (
     always_ff @(posedge clk) begin
         if (reset) begin
             state <= S_RESET0; step <= 5'd0; nw <= 3'd0; noirq <= 1'b0;
-            bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0; irq_vector <= 8'd0;
+            bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0;
             req_tog <= 1'b0; irq_ack_tog <= 1'b0; irq_ack_vector <= 8'd0; istart_tog <= 1'b0; irq_tog <= 1'b0;
             dv_tog <= 1'b0; dv_n <= 32'd0; dv_d <= 16'd0; dbg_pc <= 24'd0; dbg_npc <= 24'd0;
             div_signed <= 1'b0; div_neg_q <= 1'b0; div_neg_r <= 1'b0; div_wide <= 1'b0;
@@ -951,7 +969,7 @@ module h8300h_core (
             for (int i = 0; i < 5; i++) ir[i] <= 16'd0;
         end else if (cen) begin
             // inputs from the per-clock side, used from the next state on
-            bus_done <= bus_done_in; mdata <= mdata_in; irq_vector <= irq_vector_in;
+            bus_done <= bus_done_in; mdata <= mdata_in;
             case (state)
             S_BUS: begin
                 if (bus_done && bus_cnt) dispatch(ret_state, ret_step);
@@ -965,7 +983,7 @@ module h8300h_core (
             S_FETCH:  finish(pc);
             S_EXEC:   exec_step(step, ea);
             S_IRQ:    irq_step(step);
-            S_SLEEP:  begin if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
+            S_SLEEP:  begin if (irq_vector_in != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
             default:  state <= S_FETCH;
             endcase
         end

@@ -125,10 +125,12 @@ int main(int argc, char **argv) {
         }
     };
     arm_irq_if_next();
-    // the core samples the vector on its enable; preset the sampled copy for an interrupt at the start
-    top->rootp->h8300h__DOT__core__DOT__irq_vector = top->irq_vector;
     top->eval();
     unsigned cen_acc = 0;             // the H8 enable as rtl/clk_enables.sv makes it: 16.384 of 96 MHz
+    // H8_CYCLES=<file>: per executed instruction (and interrupt entry), the H8
+    // states it took, "<trace index> <pc> <states>", for cost comparisons with MAME
+    FILE *cyc_f = getenv("H8_CYCLES") ? fopen(getenv("H8_CYCLES"), "w") : nullptr;
+    long cens = 0, cyc_ti = -1; uint32_t cyc_pc = 0;
 
     while (!fail && !Verilated::gotFinish()) {
         cen_acc += 64; bool cen = false;
@@ -172,7 +174,12 @@ int main(int argc, char **argv) {
 
         tick(cen);
         clocks++;
+        if (cen) cens++;
         if (top->bus_ack) req_seen = false;
+        if (cyc_f && (top->dbg_istart || top->dbg_irq)) {
+            if (cyc_ti >= 0) fprintf(cyc_f, "%ld %06X %ld\n", cyc_ti, cyc_pc, cens);
+            cens = 0; cyc_ti = (long)ti; cyc_pc = top->dbg_istart ? (top->dbg_pc & 0xffffff) : 0xFFFFFF;
+        }
 
         if (top->dbg_irq) {
             if (!irq_armed) { printf("FAIL: unexpected interrupt at instr %ld npc %06X\n", ninstr, top->dbg_npc); fail = true; break; }

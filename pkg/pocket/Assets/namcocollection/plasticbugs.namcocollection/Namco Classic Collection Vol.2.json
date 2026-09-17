@@ -1,0 +1,20 @@
+{
+    "instance": {
+        "magic": "APF_VER_1",
+        "variant_select": {
+            "id": 0,
+            "select": false
+        },
+        "data_path": "",
+        "data_slots": [
+            {
+                "id": 1,
+                "filename": "ncv2.rom"
+            },
+            {
+                "id": 2,
+                "filename": "ncv2.sav"
+            }
+        ]
+    }
+}

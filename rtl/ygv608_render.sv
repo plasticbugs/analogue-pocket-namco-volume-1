@@ -15,10 +15,13 @@
 // ROZ (R#7 ZRON, docs/ygv608.md section 10): a plane is sampled per pixel with
 // MAME's 16.16 accumulators (tilemap_t::draw_roz_core). The first pixel that
 // lands in a tile looks the tile up as the normal path does and fetches the
-// whole tile in one pattern-port burst into `tbuf`; a straight scan line never
-// returns to a tile it has left, so one cached tile is enough. Four clocks a
-// pixel plus about 50 a tile: the title animation's worst line (36 tiles) is
-// under 3,500 of the 6,210 clocks.
+// tile in one pattern-port burst into `tbuf`; a straight scan line never
+// returns to a tile it has left, so one cached tile is enough. When the line
+// does not move in texture Y (DYX = 0: no rotation, any zoom) only the texel
+// row the line samples is fetched, at its place in `tbuf` (1, 2, 9 or 18 units
+// instead of 8-64): Vol.2's Rally-X attract scrolls a full screen of 16x16
+// 8bpp tiles at identity. Four clocks a pixel plus about 50 a tile (rotated)
+// or 25 (row): the worst line in the corpus is under 3,500 of the 6,210 clocks.
 //------------------------------------------------------------------------------
 `default_nettype none
 
@@ -92,8 +95,9 @@ module ygv608_render (
     logic [31:0] tbuf [64];
     logic  [5:0] tb_raddr;
     logic [31:0] tb_q;
+    logic  [5:0] roz_off;            // tbuf index of the burst's first unit (row fetches)
     always_ff @(posedge clk) begin
-        if (pat_wr && roz_fetch) tbuf[pat_idx] <= pat_q;
+        if (pat_wr && roz_fetch) tbuf[pat_idx + roz_off] <= pat_q;
         tb_q <= tbuf[tb_raddr];
     end
 
@@ -229,7 +233,7 @@ module ygv608_render (
             line_clocks <= 16'd0; max_clocks <= 16'd0; clk_count <= 16'd0;
             pnt_addr <= 11'd0; sdt_addr <= 9'd0; sat_addr <= 6'd0;
             lb_waddr <= 10'd0; lb_wdata <= 8'd0; phase <= 3'd0;
-            pat_len <= 7'd1; roz_fetch <= 1'b0; roz <= 1'b0; roz_unsupported <= 1'b0; tile_valid <= 1'b0; tb_raddr <= 6'd0;
+            pat_len <= 7'd1; roz_fetch <= 1'b0; roz <= 1'b0; roz_unsupported <= 1'b0; tile_valid <= 1'b0; tb_raddr <= 6'd0; roz_off <= 6'd0;
         end else begin
             if (busy) clk_count <= clk_count + 16'd1;
             if (start) begin
@@ -649,11 +653,21 @@ module ygv608_render (
                 st <= (rx == 9'd287) ? S_PHASE : S_R_A;
             end
             S_R_FETCH: begin
-                logic [26:0] wa;
+                logic [26:0] wa; logic [4:0] pyf; logic [5:0] off;
                 if (!cur_8bpp) wa = pts16 ? ({7'd0, code} << 5) : ({7'd0, code} << 3);
                 else           wa = pts16 ? ({7'd0, code} << 6) : ({7'd0, code} << 4);
-                pat_addr <= wa[20:0];
-                pat_len <= cur_8bpp ? (pts16 ? 7'd64 : 7'd16) : (pts16 ? 7'd32 : 7'd8);
+                pyf = tflipy ? (ts_m1 - r_py) : r_py;
+                if (roz_dyx == 32'd0) begin
+                    // row fetch: the units S_R_B reads for texel row pyf (both 8x8 blocks of a 16x16 tile)
+                    if (!cur_8bpp) off = pts16 ? {1'b0, pyf[3], 1'b0, pyf[2:0]} : {3'b000, pyf[2:0]};
+                    else           off = pts16 ? {pyf[3], 1'b0, pyf[2:0], 1'b0} : {2'b00, pyf[2:0], 1'b0};
+                    pat_len <= cur_8bpp ? (pts16 ? 7'd18 : 7'd2) : (pts16 ? 7'd9 : 7'd1);
+                end else begin
+                    off = 6'd0;
+                    pat_len <= cur_8bpp ? (pts16 ? 7'd64 : 7'd16) : (pts16 ? 7'd32 : 7'd8);
+                end
+                roz_off <= off;
+                pat_addr <= wa[20:0] + {15'd0, off};
                 pat_req <= 1'b1;
                 roz_fetch <= 1'b1;
                 st <= S_R_WAIT;

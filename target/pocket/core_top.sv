@@ -187,9 +187,13 @@ module core_top
     logic [31:0] datatable_data;
     wire  [31:0] datatable_q;
     localparam [31:0] NV_BYTES = 32'h800;      // the AT28C16
+    // The APF takes the save write-back length from the data table, entry
+    // index*2+1 (METHODOLOGY). The save is slot 2 (entry 5); the Punch-Out!! and
+    // System 2 cores, which load on hardware with the same three slots, write
+    // entry 3, so both are written, alternately.
     always_ff @(posedge clk_74a) begin
         datatable_wren <= 1'b1;
-        datatable_addr <= 10'd3;                // slot 1 size entry
+        datatable_addr <= (datatable_addr == 10'd5) ? 10'd3 : 10'd5;
         datatable_data <= NV_BYTES;
     end
 
@@ -259,7 +263,7 @@ module core_top
     always_ff @(posedge clk_74a) begin
         nv_dirty_d <= nv_dirty_s; inmenu_d <= inmenu_s;
         target_dataslot_read <= 1'b0; target_dataslot_getfile <= 1'b0; target_dataslot_openfile <= 1'b0;
-        target_dataslot_id <= 16'd1; target_dataslot_slotoffset <= 32'd0;
+        target_dataslot_id <= 16'd2; target_dataslot_slotoffset <= 32'd0;   // the save slot: 0 is the instance JSON, 1 the ROM
         target_dataslot_bridgeaddr <= 32'h2000_0000; target_dataslot_length <= NV_BYTES;
         if (dataslot_allcomplete) nv_loaded <= 1'b1;
         if (nv_loaded && boot_timer != NV_BOOT) boot_timer <= boot_timer + 29'd1;
@@ -392,7 +396,7 @@ module core_top
     // ---------------------------------------------------------- memory
     wire        mem_init = ~pll_locked_sys;
     wire        mem_ready, dl_busy;
-    wire        ioctl_isROM = ioctl_download && ioctl_index == 16'h0;
+    wire        ioctl_isROM = ioctl_download && ioctl_index == 16'h1;   // slot 1: slot 0 is the instance JSON, consumed by the Pocket
     wire        dl_we    = ioctl_isROM && ioctl_wr;
     wire [24:0] dl_addr  = ioctl_addr[24:0];
     wire  [7:0] dl_data  = ioctl_data;
@@ -419,8 +423,8 @@ module core_top
     wire        core_reset_c = reset_sw_s | ~loaded_s | ~mem_ready | dl_busy | ioctl_download;
     reg         core_reset_q = 1'b1, core_reset = 1'b1;
     always @(posedge clk_sys) begin core_reset_q <= core_reset_c; core_reset <= core_reset_q; end
-    // EEPROM load from the save slot (slot 1); read-out for the save
-    wire        nv_load_we = nv_dl_download && nv_dl_index == 16'h1 && nv_dl_wr;
+    // EEPROM load from the save slot (slot 2); read-out for the save
+    wire        nv_load_we = nv_dl_download && nv_dl_index == 16'h2 && nv_dl_wr;
     // inputs: active low. DSW: bit 8 freeze, 9 test, 12 coin1, 13 coin2, 14 service, 15 service1
     wire        test_sw = mod_sw1[0] | svc_sw;
     wire        p1_b1 = p1_btn_a | j1_up & 1'b0, p1_b2 = p1_btn_b, p1_b3 = p1_btn_x | p1_btn_y;

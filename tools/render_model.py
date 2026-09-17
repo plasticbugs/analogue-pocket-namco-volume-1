@@ -22,8 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pngio
 
 W, H = 288, 224                    # visible raster (CRTC HDW=36*16/2, VDW=28*8)
-ROM_OFFSET, ROM_SIZE = 0x180000, 0x200000   # pattern ROM inside ncv1.rom
-REGION_SIZE = 0x800000             # MAME's ygv608 region: the 2 MB mirrored 4x
+CHIP_OFFSETS, CHIP_SIZE = (0x180000, 0x580000), 0x200000   # the two character ROM slots inside the image
+REGION_SIZE = 0x800000             # MAME's ygv608 region: chip 0 at 0, chip 1 at 0x400000, each mirrored 2x
 
 # MAME gfx sets (gfx_ygv608): index -> (tile size, bpp, bytes per tile)
 GFX = {0: (8, 4, 32), 1: (16, 4, 128), 2: (32, 4, 512), 3: (64, 4, 2048),
@@ -79,15 +79,18 @@ def pal6bit(v):
 
 # ---------------------------------------------------------------- pattern ROM
 class PatternRom:
-    """The 8 MB region MAME sees (2 MB ROM mirrored), with the gfx decode of
+    """The 8 MB region MAME sees (two 2 MB chips, each mirrored), with the gfx decode of
     pts_4bits_layout / pts_8x8_8bits_layout / pts_16x16_8bits_layout."""
 
     def __init__(self, rom_path, fetch_log=None):
+        self.chips = []
         with open(rom_path, 'rb') as f:
-            f.seek(ROM_OFFSET)
-            self.rom = f.read(ROM_SIZE)
-        if len(self.rom) != ROM_SIZE:
-            sys.exit(f'{rom_path}: pattern ROM short ({len(self.rom)} bytes)')
+            for off in CHIP_OFFSETS:
+                f.seek(off)
+                chip = f.read(CHIP_SIZE)
+                if len(chip) != CHIP_SIZE:
+                    sys.exit(f'{rom_path}: character ROM at {off:#x} short ({len(chip)} bytes)')
+                self.chips.append(chip)
         self.fetch_log = fetch_log     # set of byte addresses, or None
         self.cache = {}
 
@@ -104,7 +107,7 @@ class PatternRom:
         addr &= REGION_SIZE - 1
         if self.fetch_log is not None:
             self.fetch_log.add(addr)
-        return self.rom[addr & (ROM_SIZE - 1)]
+        return self.chips[(addr >> 22) & 1][addr & (CHIP_SIZE - 1)]
 
     def pixel(self, gfxset, code, x, y):
         """Raw pen (0..15 or 0..255) of pixel (x, y) of tile `code` in set."""

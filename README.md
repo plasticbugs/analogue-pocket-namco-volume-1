@@ -1,40 +1,57 @@
-# Namco Classic Collection Vol.1 for the Analogue Pocket
+# Namco Classic Collection for the Analogue Pocket
 
-An openFPGA core for Namco's ND-1 arcade board running *Namco Classic
-Collection Vol.1* (1995): Galaga, Xevious and Mappy, each in Original and
-Arrangement form. The whole board is in gateware: 68000 main CPU, H8/3002 sub
-CPU, Yamaha YGV608 video, Namco C352 sound.
+An openFPGA core for Namco's ND-1 arcade board and the two collections that
+ran on it, each game in Original and Arrangement form:
+
+* *Namco Classic Collection Vol.1* (1995): Galaga, Xevious, Mappy
+* *Namco Classic Collection Vol.2* (1996): Pac-Man, Rally-X, Dig Dug
+
+The whole board is in gateware: 68000 main CPU, H8/3002 sub CPU, Yamaha YGV608
+video, Namco C352 sound. The two collections are the same hardware with
+different ROMs (Vol.2 fills a second character-ROM socket), so one bitstream
+runs both and the Pocket lists them by name.
 
 **Status: pre-release.** Every block is verified against MAME in simulation
-(below); the first hardware build is in progress.
+(below) with both collections; nothing has run on a Pocket yet.
 
 ## What is in the box
 
 | Board part | Implementation | Verified by |
 |---|---|---|
 | 68000 @ 12.288 MHz | fx68k (cycle-accurate) | system bench |
-| H8/3002 @ 16.384 MHz | `rtl/h8300h.sv` + `rtl/h83002.sv`, written from MAME's `h8.lst` | trace replay: 800k instructions of gameplay in lockstep with MAME, every non-ROM access and interrupt matched (`sim/run_sub.sh`) |
-| Yamaha YGV608 VDP | `rtl/ygv608.sv`, `rtl/ygv608_render.sv` | pixel-exact on 79 frozen MAME states across every video mode the games use, including the title's rotation/zoom (`tools/regress_video.sh`) |
+| H8/3002 @ 16.384 MHz | `rtl/h8300h.sv` + `rtl/h83002.sv`, written from MAME's `h8.lst` | trace replay of both sub programs: 1.9 million instructions of boot and gameplay in lockstep with MAME, every non-ROM access matched, timer interrupts within 7 CPU states of MAME's (`sim/run_sub.sh`) |
+| Yamaha YGV608 VDP | `rtl/ygv608.sv`, `rtl/ygv608_render.sv` | pixel-exact on 157 frozen MAME states from both collections, across every video mode the games use, including rotation/zoom (`tools/regress_video.sh`) |
 | Namco C352 PCM | `rtl/c352.sv` | 40 s of MAME's register writes replayed, output within 0.3% of MAME's WAV (`sim/run_c352.sh`) |
-| AT28C16 EEPROM | `rtl/at28c16.sv`, saved to `ncv1.sav` | — |
-| 5.5 MB ROM | Pocket SDRAM (`target/pocket/ncv1_mem.sv`) with instruction caches | image load and read-back through every port with the SDRAM chip model (`sim/run_mem.sh`) |
+| AT28C16 EEPROM | `rtl/at28c16.sv`, saved per collection (`ncv1.sav`, `ncv2.sav`) | — |
+| 7.5 MB ROM | Pocket SDRAM (`target/pocket/ncv1_mem.sv`) with instruction caches | image load and read-back through every port with the SDRAM chip model (`sim/run_mem.sh`) |
 
 `docs/hardware.md` describes the board, `docs/core-design.md` the mapping onto
 the Pocket, `docs/ygv608.md` the VDP semantics the RTL was written from, and
 `METHODOLOGY.md` the method (MAME is the oracle; a Python reference renderer is
 the executable spec; frozen-state benches are the regression gate).
 
-## Building the ROM image
+## Building the ROM images
 
-ROMs are not included. From your own MAME `ncv1` romset (zip or directory):
+ROMs are not included. From your own MAME `ncv1` and `ncv2` romsets (zip or
+directory), whichever you have:
 
 ```
-python3 tools/mra_build.py ncv1.mra ncv1.zip
+python3 tools/mra_build.py ncv1.mra ncv1.zip     # -> ncv1.rom
+python3 tools/mra_build.py ncv2.mra ncv2.zip     # -> ncv2.rom
 ```
 
-produces `ncv1.rom` (5.5 MB); copy it to `Assets/namco/common/` on the SD card.
-Both known dumps of `nc1cg0.10c` are accepted (MAME ≤ 0.270 listed CRC
-355e7f29, later versions d4383199).
+Each image is 7,864,320 bytes; copy them to `Assets/namcocollection/common/` on
+the SD card. The Pocket lists "Namco Classic Collection Vol.1" and "Vol.2"
+under the core (the instance files in
+`Assets/namcocollection/plasticbugs.namcocollection/`); a collection whose image
+is missing will not load, the other still does. Settings and records are saved
+per collection (`ncv1.sav`, `ncv2.sav`).
+
+The builder checks every ROM's CRC32. Both known dumps of Vol.1's `nc1cg0.10c`
+are accepted (MAME ≤ 0.270 listed CRC 355e7f29, later versions d4383199), and
+Vol.2's second character ROM is found by CRC whether it is named `ncs1cg1.10f`
+(MAME) or `ncs1cg1.10e`. An `ncv1.rom` built for version 0.1.0 (5,767,168
+bytes) must be rebuilt.
 
 ## The screen
 
@@ -66,17 +83,21 @@ push; a tag cuts a release with the tested bitstream.
 
 ```
 sim/lint.sh                    # Verilator -Wall over every block
-tools/regress_render.sh        # reference renderer vs MAME snapshots (79 states)
+tools/regress_render.sh        # reference renderer vs MAME snapshots (157 states, both collections)
 tools/regress_video.sh         # VDP RTL vs the reference renderer
-sim/run_h8.sh                  # H8/300H CPU trace replay (artifacts/h8)
-sim/run_sub.sh                 # H8/3002 + peripherals + decode trace replay
+sim/run_h8.sh                  # H8/300H CPU trace replay (H8DIR=artifacts/h8, h8_game, h8_ncv2, h8_ncv2_game)
+sim/run_sub.sh                 # H8/3002 + peripherals + decode trace replay (same captures)
 sim/run_c352.sh                # C352 vs MAME audio
 sim/run_mem.sh                 # SDRAM partition: load the image, read it back through every port
 sim/run_system.sh 400          # boot the whole machine, frames and audio to sim/obj_system/out
+                               # (ROM=artifacts/ncv2.rom for Vol.2; Vol.2 benches take ROM= the same way)
 ```
 
 The MAME captures under `artifacts/` are produced by the Lua scripts in
-`tools/` (`tools/mame_run.sh` runs MAME headless with disposable directories).
+`tools/`: `tools/make_corpus.sh` dumps the frozen video states of both
+collections, `tools/capture_h8.sh` the four sub-CPU traces, and
+`tools/mame_run.sh` runs MAME headless with disposable directories
+(`GAME=ncv2` for Vol.2).
 
 ## Credits
 
@@ -154,5 +175,6 @@ MAME's device models, one vendored CPU core, and the Pocket's platform layer.
 
 ### Game
 
-Namco Classic Collection Vol.1 is © 1995 Namco. No ROM data of any kind is
-included in this repository — see "Building the ROM image" above.
+Namco Classic Collection Vol.1 and Vol.2 are © 1995, 1996 Namco. No ROM data
+of any kind is included in this repository — see "Building the ROM images"
+above.

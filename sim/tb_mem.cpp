@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     if (argc < 2) { fprintf(stderr, "usage: tb_mem rom [reads]\n"); return 2; }
     long nreads = argc > 2 ? atol(argv[2]) : 3000;
     FILE *f = fopen(argv[1], "rb"); if (!f) return 2;
-    std::vector<uint8_t> img(0x580000); if (fread(img.data(), 1, img.size(), f) != img.size()) { fprintf(stderr, "short image\n"); return 2; } fclose(f);
+    std::vector<uint8_t> img(0x780000); if (fread(img.data(), 1, img.size(), f) != img.size()) { fprintf(stderr, "short image\n"); return 2; } fclose(f);
     auto w16 = [&](uint32_t b) -> uint16_t { return ((uint16_t)img[b] << 8) | img[b + 1]; };
 
     dut = new Vtb_mem_top;
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
         if (dut->sub_ack && sb)  { if (dut->sub_q != w16(0x100000 + sa * 2)) { if (errors++ < 10) printf("sub %05X: %04X want %04X\n", sa, dut->sub_q, w16(0x100000 + sa * 2)); } dut->sub_req = 0; sb = false; done_sub++; }
         if (dut->pcm_ack && cb)  { if (dut->pcm_q != img[0x380000 + ca]) { if (errors++ < 10) printf("pcm %06X: %02X want %02X\n", ca, dut->pcm_q, img[0x380000 + ca]); } dut->pcm_req = 0; cb = false; done_pcm++; pcm_lat.push_back((unsigned)(cycles - pcm_t)); }
         if (dut->pat_wr && tb) {
-            uint32_t b = 0x180000 + (ta + dut->pat_idx) * 4;
+            uint32_t b = (dut->pat_addr >> 20 & 1 ? 0x580000 : 0x180000) + (ta + dut->pat_idx) * 4;
             uint32_t want = ((uint32_t)w16(b) << 16) | w16(b + 2);
             if (dut->pat_idx != seen_units || dut->pat_q != want) { if (errors++ < 10) printf("pat %05X+%d (len %d): idx %d q %08X want %08X\n", ta, seen_units, tl, dut->pat_idx, dut->pat_q, want); }
             seen_units++; units++;

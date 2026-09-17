@@ -1,0 +1,41 @@
+Namco Classic Collection
+Vol.1 (1995) and Vol.2 (1996)
+
+Both collections on Namco's ND-1
+board, all in gateware:
+
+  Vol.1  Galaga, Xevious, Mappy
+  Vol.2  Pac-Man, Rally-X, Dig Dug
+
+each in Original and Arrangement.
+
+* 68000 at 12.288 MHz, game logic
+* H8/3002 at 16.384 MHz sub CPU,
+  inputs and sound driver
+* Namco C352 32-voice PCM
+* Yamaha YGV608 tilemap/sprite VDP
+* 288x224 at 59.92 Hz, rotated
+
+Controls
+  D-pad / stick   move
+  A               button 1
+  B               button 2
+  X or Y          button 3
+  Select          coin
+  Start           start
+  (a second pad plays player 2)
+
+Settings and records are kept in the
+EEPROM, saved per collection to
+ncv1.sav / ncv2.sav.
+
+ROMs are not included. Build each
+image from your own MAME romset:
+
+  python3 mra_build.py ncv1.mra
+      ncv1.zip
+  python3 mra_build.py ncv2.mra
+      ncv2.zip
+
+and copy ncv1.rom / ncv2.rom into
+Assets/namcocollection/common/.

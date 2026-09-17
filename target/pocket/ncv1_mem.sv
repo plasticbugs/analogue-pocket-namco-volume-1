@@ -1,13 +1,15 @@
 //------------------------------------------------------------------------------
-// Pocket memory subsystem for the ND-1 core: the 5.5 MB ROM image in SDRAM
+// Pocket memory subsystem for the ND-1 core: the 7.5 MB ROM image in SDRAM
 // behind the core's request/ack ports (docs/core-design.md §2).
 //
 //   image offset   size     SDRAM word address   client
 //   0x000000       1 MB     0x000000             68000 program  (random, client 1)
 //   0x100000       512 KB   0x080000             H8 program     (random, client 2)
-//   0x180000       2 MB     0x0C0000             pattern ROM    (bursts of 1-64 32-bit units; the 8 MB
-//                                                pattern space mirrors the 2 MB)
+//   0x180000       2 MB     0x0C0000             pattern ROM chip 0  (bursts of 1-64 32-bit units; pattern
+//                                                space 0x000000-0x3FFFFF, the chip mirrored twice)
 //   0x380000       2 MB     0x1C0000             C352 samples   (random, client 3, one byte used)
+//   0x580000       2 MB     0x2C0000             pattern ROM chip 1  (pattern space 0x400000-0x7FFFFF; Vol.1's
+//                                                image repeats chip 0 here)
 //
 // Big-endian words: image byte 2k is the high byte of word k. Client 0 is the
 // loader's word writer (busy only while the image downloads).
@@ -42,7 +44,7 @@ module ncv1_mem (
     output logic  [1:0] dram_dqm,
     output logic        dram_clk, dram_cke, dram_ras_n, dram_cas_n, dram_we_n
 );
-    localparam [24:1] SD_PROG = 24'h000000, SD_SUB = 24'h080000, SD_PAT = 24'h0C0000, SD_PCM = 24'h1C0000;
+    localparam [24:1] SD_PROG = 24'h000000, SD_SUB = 24'h080000, SD_PAT = 24'h0C0000, SD_PCM = 24'h1C0000, SD_PAT1 = 24'h2C0000;
 
     // ------------------------------------------------------------ download: pair bytes into words
     // The loader delivers at most a byte per 8 clocks; consecutive even/odd bytes
@@ -118,8 +120,8 @@ module ncv1_mem (
 
     // burst client: the pattern ROM, pat_len 32-bit units (two SDRAM words each) per request;
     // each unit goes out with pat_wr as its second word arrives, pat_ack after b_done.
-    // A burst past the end of the 2 MB ROM reads on into the next region instead of
-    // wrapping (tiles within their size of the end of the ROM only).
+    // A burst past the end of a 2 MB chip reads on into the next region instead of
+    // wrapping (tiles within their size of the end of the chip only).
     logic [24:1] b_addr; logic [9:0] b_idx; logic b_req, b_wr, b_done, b_abort; logic [15:0] b_data; logic [9:0] b_widx;
     logic [15:0] bw0;
     logic  [9:0] b_len_r;
@@ -133,7 +135,7 @@ module ncv1_mem (
             pat_ack <= 1'b0; pat_wr <= 1'b0;
             case (bst)
             B_IDLE: if (pat_req && !pat_ack) begin
-                b_addr <= SD_PAT + {4'd0, pat_addr[18:0], 1'b0};   // the 2 MB ROM mirrored across the 8 MB space
+                b_addr <= (pat_addr[20] ? SD_PAT1 : SD_PAT) + {4'd0, pat_addr[18:0], 1'b0};   // chip pat_addr[20], each 2 MB mirrored across its 4 MB
                 b_len_r <= {2'b00, pat_len, 1'b0};
                 b_req <= 1'b1; bst <= B_RUN;
             end
@@ -161,5 +163,5 @@ module ncv1_mem (
         .b_addr(b_addr), .b_len(b_len_r), .b_req(b_req), .b_abort(b_abort), .b_wr(b_wr), .b_idx(b_idx), .b_data(b_data), .b_done(b_done),
         .b_we(1'b0), .b_wdata(16'd0), .b_be(2'b00), .b_widx(b_widx)
     );
-    wire _unused = &{1'b0, dram_cs_n_unused, b_widx, b_idx[9:7], pat_addr[20:19], pcm_addr[23:21], wf_head[41:18]};
+    wire _unused = &{1'b0, dram_cs_n_unused, b_widx, b_idx[9:7], pat_addr[19], pcm_addr[23:21], wf_head[41:18]};
 endmodule

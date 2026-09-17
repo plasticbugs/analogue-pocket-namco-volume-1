@@ -55,7 +55,7 @@ done
 for d in "$OUT"/Cores/*/; do
     [ -f "$d/bitstream.rbf_r" ] || { echo "no bitstream for $(basename "$d") in run $RUN"; exit 1; }
 done
-for extra in xenophobe.mra archrivals.mra README.md tools/mra_build.py; do
+for extra in ncv1.mra ncv2.mra README.md tools/mra_build.py; do
     [ -f "$extra" ] && cp "$extra" "$OUT/$(basename "$extra")"
 done
 
@@ -66,19 +66,20 @@ for c in $CORES; do
     done
     plat=$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['core']['metadata']['platform_ids'][0])" \
            "$OUT/Cores/$c/core.json")
-    for f in "Platforms/$plat.json" "Platforms/_images/$plat.bin"; do
+    for f in "Platforms/$plat.json" "Platforms/_images/$plat.bin" "Assets/$plat/common/README.txt" \
+             "Assets/$plat/$c/Namco Classic Collection Vol.1.json" "Assets/$plat/$c/Namco Classic Collection Vol.2.json"; do
         [ -e "$OUT/$f" ] || { echo "package missing $f"; exit 1; }
     done
 done
-for j in "$OUT"/Cores/*/*.json "$OUT"/Platforms/*.json; do
+for j in "$OUT"/Cores/*/*.json "$OUT"/Platforms/*.json "$OUT"/Assets/*/*/*.json; do
     python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$j" || { echo "bad json: $j"; exit 1; }
 done
 if find "$OUT" -name '*.rom' | grep -q .; then
     echo "refusing to publish: a ROM is in the package"; exit 1
 fi
 
-VER=$(python3 -c "import json;print(json.load(open('pkg/pocket/Cores/plasticbugs.xenophobe/core.json'))['core']['metadata']['version'])")
-ZIP="$PWD/mcr68-pocket-sdcard.zip"
+VER=$(python3 -c "import json;print(json.load(open('pkg/pocket/Cores/plasticbugs.namcocollection/core.json'))['core']['metadata']['version'])")
+ZIP="$PWD/namcocollection-pocket-sdcard.zip"
 rm -f "$ZIP"
 (cd "$OUT" && zip -qr "$ZIP" .)
 echo "package $VER, zip $(wc -c < "$ZIP") bytes"
@@ -87,8 +88,8 @@ for c in $CORES; do
 done
 
 gh release create "$TAG" \
-    --title "MCR-68000 for Analogue Pocket $TAG" \
-    --notes-file docs/release-notes.md \
+    --title "Namco Classic Collection for Analogue Pocket $TAG" \
+    --notes "Unzip onto the Pocket SD card root, overwriting previous files. Build ncv1.rom and ncv2.rom with the included mra_build.py and put them in Assets/namcocollection/common/." \
     "$ZIP"
 rm -f "$ZIP"
 echo "published $TAG"

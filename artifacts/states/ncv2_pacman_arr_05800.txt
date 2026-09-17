@@ -1,0 +1,164 @@
+frame 5800
+m_md 0
+m_page_x 40
+m_page_y 20
+m_page_size 0
+m_pattern_size 0
+m_bits16 0
+m_pny_shift 6
+m_na8_mask f
+m_base_y_shift 2
+m_h_div_size 0
+m_v_div_size 0
+m_col_shift 8
+m_flip 0
+m_zron 0
+m_dspe 1
+m_dckm 0
+m_h_display_size 3
+m_v_display_size 3
+m_roz_wrap_disable 0
+m_scroll_wrap_disable 0
+m_planeA_trans_enable 1
+m_planeB_trans_enable 0
+m_priority_mode 0
+m_cbdr 0
+m_yse 0
+m_scm 0
+m_planeA_color_fetch 4
+m_planeB_color_fetch 4
+m_sprite_color_fetch 0
+m_mosaic_aplane 0
+m_mosaic_bplane 0
+m_sprite_disable 0
+m_sprite_aux_mode 1
+m_sprite_aux_reg 0
+m_border_color 0
+m_sprite_bank 40
+m_namcond1_gfxbank 0
+m_vblank_irq_mask 1
+m_raster_irq_mask 1
+m_raster_irq_hpos 0
+m_raster_irq_vpos 0
+m_raster_irq_mode 0
+m_ax 0
+m_ay 0
+m_dx 0
+m_dy 0
+m_dxy 0
+m_dyx 0
+m_raw_ax 0
+m_raw_ay 0
+m_raw_dx 0
+m_raw_dy 0
+m_raw_dxy 0
+m_raw_dyx 0
+m_crtc.htotal 324
+m_crtc.vtotal 105
+m_crtc.display_hstart 6c
+m_crtc.display_vstart 1a
+m_crtc.display_width 240
+m_crtc.display_height e0
+m_crtc.display_hsync 30
+m_crtc.display_vsync 3
+m_crtc.border_width 20
+m_crtc.border_height 0
+m_screen_status 0
+m_ba_plane_scroll_select 1
+m_plane_select_access 0
+m_xtile_ptr 20
+m_ytile_ptr 5
+m_pattern_name_table[] 4096 1
+88 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff dd ff ff ff ff ff 88 87 86 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 8f 90 91 86 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff db d7 ff ff ff ff 9c ff ff 90 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 90 ff ff 87 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ce d2 ff ff 8c 8b 8a ff ff 8f ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 91 ff ff 88 9c 8a ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff dc d8 ff ff 8b ff ff ff ff 90 ff ff 8f 90 91 86 87 88 89 8a 8b 8c 8b ff ff 86 ff ff ff ff 8b ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff d7 cc ff ff 8a ff ff ff ff 91 ff ff 90 ff ff ff ff ff ff ff ff ff 8a ff ff 87 ff ff ff ff 8c ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff d2 ff ff ff 89 ff ff 88 87 86 ff ff 91 ff ff ff ff ff ff ff ff ff 89 ff ff 88 89 8a ff ff 8b ff ff ff ef f0 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff 88 ff ff 89 ff ff ff ff 86 ff ff ff ff ff ff ff ff ff 88 ff ff ff ff 8b ff ff 8a ff ff ff 78 79 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff 87 ff ff 8a ff ff ff ff 87 ff ff ff ff ff ff ff ff ff 87 ff ff ff ff 8c ff ff 89 ff ff ff 7a 7b ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff e ff ff ff 86 ff ff 8b 8c 8b 8a 89 88 ff ff ff ff ff ff ff ff ff 86 ff ff ff 8a 8b ff ff 88 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 1b 0 ff ff 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 91 ff ff ff ff ff ff ff 87 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 18 0 ff ff 90 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 90 ff ff ff ff ff ff ff 86 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff c 0 ff ff 8f 90 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 8f 90 91 ff 91 90 8f 90 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 1c 0 ff ff ff ff 86 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff 2 ff ff ff ff 86 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 11 ff ff ff 8f 90 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 8f 90 91 ff 91 90 8f 90 91 ff ff ff 70 71 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 10 ff ff ff 90 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 90 ff ff ff ff ff ff ff 86 ff ff ff 72 73 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 12 ff ff ff 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 91 ff ff ff ff ff ff ff 87 ff ff ff 63 67 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff 11 ff ff ff 86 ff ff 8b 8c 8b 8a 89 88 ff ff ff ff ff ff ff ff ff 86 ff ff ff 8a 8b ff ff 88 ff ff ff 62 66 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff 87 ff ff 8a ff ff ff ff 87 ff ff ff ff ff ff ff ff ff 87 ff ff ff ff 8c ff ff 89 ff ff ff 61 65 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff 88 ff ff 89 ff ff ff ff 86 ff ff ff ff ff ff ff ff ff 88 ff ff ff ff 8b ff ff 8a ff ff ff 60 64 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff dd ff ff ff 89 ff ff 88 87 86 ff ff 91 ff ff ff ff ff ff ff ff ff 89 ff ff 88 89 8a ff ff 8b ff ff ff ed ee ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff db d7 ff ff 8a ff ff ff ff 91 ff ff 90 ff ff ff ff ff ff ff ff ff 8a ff ff 87 ff ff ff ff 8c ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ce d2 ff ff 8b ff ff ff ff 90 ff ff 8f 90 91 86 87 88 89 8a 8b 8c 8b ff ff 86 ff ff ff ff 8b ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff dc d8 ff ff 8c 8b 8a ff ff 8f ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 91 ff ff 88 9c 8a ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff d7 cc ff ff ff ff 9c ff ff 90 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 90 ff ff 87 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff d2 ff ff ff ff ff 88 87 86 91 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 8f 90 91 86 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 d4 d8 40 40 80 80 85 85 85 88 c0 d8 d4 40 44 c4 85 88 c0 d8 d4 85 40 40 45 45 80 80 83 ce d4 d8 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 d5 d9 80 83 d7 c7 c3 c7 40 44 c1 d9 d5 85 88 c5 85 88 c1 d9 d5 85 88 db c3 c7 c3 40 44 c5 d5 d9 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 45 45 80 83 c0 d8 d4 d8 40 44 c0 d8 d4 85 88 c4 45 48 c0 d8 d4 45 48 c4 d4 d8 d4 40 45 45 48 ce d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 45 48 d7 c7 cd 40 44 cf 45 45 40 40 80 80 83 c5 45 40 40 80 80 45 48 c5 85 88 c9 d9 cb 85 88 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 80 83 c0 d8 d4 80 83 c4 d4 d0 c2 c6 c2 c6 c2 d2 d4 d0 c2 c6 c2 c6 c2 d2 80 83 c0 d8 d4 85 88 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 80 83 c1 40 80 45 48 c5 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 45 80 85 88 c9 40 44 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 40 44 c0 d8 ca d2 c2 d2 80 83 c8 85 45 85 88 ce 40 80 40 44 c8 45 48 ce d4 d0 c2 c6 cc 40 44 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 40 44 c1 d9 d5 d9 d5 d9 45 48 c1 45 48 45 48 c5 80 83 80 83 c1 80 83 c5 d5 d9 d5 d9 d5 80 83 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 45 48 c0 40 44 cf 80 45 85 88 c0 85 45 85 88 c4 40 80 40 44 c0 40 80 45 48 ce 40 44 c8 80 83 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 45 48 c1 80 83 c4 d5 d1 c3 c7 cd d9 cb c7 c3 c5 d5 d1 c3 c7 cd 80 83 db c3 d3 80 83 c1 45 48 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 85 88 c0 45 48 c5 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 45 48 c4 d4 d8 45 48 c0 85 88 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 85 88 c1 85 45 80 83 cf 45 48 c9 40 80 45 80 42 43 cf 85 88 c8 85 88 c5 80 45 85 88 c1 85 88 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 80 83 c0 d8 ca c6 c2 c6 80 83 c0 82 84 da c2 82 84 c4 45 48 c1 d8 ca d2 d4 d0 c3 c7 c3 80 83 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 80 83 c1 d9 d5 d9 d5 d9 40 44 c1 d9 46 dd d5 47 49 c5 80 83 c0 d9 d5 d9 d5 d9 d5 d9 d5 80 83 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 40 40 85 88 c8 45 80 40 85 88 c0 d8 86 de d4 87 89 c4 40 80 45 85 88 ce 85 85 80 80 40 40 44 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 80 83 d7 c7 cd d9 cb c7 40 44 c1 d9 46 dd d5 47 49 c5 80 83 d7 c7 c3 d3 d5 d1 c3 c7 c3 80 83 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 80 83 c0 d8 d4 d8 d4 d8 80 83 c0 82 84 dc d4 82 84 c4 45 48 d6 d8 d4 d8 d4 d8 d4 d8 d4 80 83 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 85 88 c1 85 45 80 83 cf 45 48 c1 40 80 45 80 42 43 c5 85 88 c1 40 44 cf 80 45 85 88 c8 85 88 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 85 88 c0 45 48 da c2 d2 d4 d0 c3 d8 ca c6 c2 c6 c2 d2 d4 d0 c0 80 83 c4 d4 d0 45 48 c0 85 88 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 45 48 c1 80 83 c5 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 d9 d5 45 48 db d5 d9 80 83 c1 45 48 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 45 48 c0 40 44 c4 45 80 40 44 c8 40 80 40 44 ce 85 45 85 88 c8 85 45 80 83 ce 40 44 c0 80 83 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 40 44 c1 d9 cb c7 d5 d1 80 83 c1 80 83 80 83 c5 45 48 45 48 c1 45 48 db c3 db d5 d1 c3 80 83 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 40 44 c0 d8 d4 d8 d4 d8 45 48 c0 40 80 40 44 c4 85 45 85 88 c0 80 83 c4 d4 d8 d4 d8 d4 40 44 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 80 83 c1 85 80 45 48 cf d5 d1 cd d9 cb c7 c3 c5 d5 d1 c3 c7 cd d9 cb c5 45 80 40 44 c9 40 44 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 80 83 c0 d8 ca 80 83 c4 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 d4 d8 80 83 d6 c6 cc 85 88 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 45 48 c1 d9 d5 85 88 c5 45 45 40 40 80 80 83 cf 45 40 40 80 80 45 48 cf 40 44 c1 d9 d5 85 88 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 45 45 80 83 c8 d8 ca d2 40 44 d6 c6 c2 85 88 c4 45 48 d6 c6 c2 45 48 c4 d4 d0 c0 40 45 45 48 c4 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d5 d9 d5 d9 d5 d1 80 83 cc d9 d5 d9 40 44 c1 d9 d5 85 88 c5 85 88 c1 d9 d5 85 88 db d5 d9 d5 40 44 db c3 c5 d5 d9 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+d4 d8 d4 d8 d4 d8 40 40 80 80 85 85 85 88 c0 d8 d4 40 44 c4 85 88 c0 d8 d4 85 40 40 45 45 80 80 83 c4 d4 d8 d4 d8 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+m_sprite_attribute_table.b[] 256 1
+33 9b 0 9f 3b 9b 0 9e 43 9b 0 17 4b 9b 0 12 53 9b 0 18 5b 9b 0 c 6b 9b 0 1d 73 9b 0 1b 7b 9b 0 e 83 9b 0 1c 8b 9b 30 17 93 9b 0 12 63 6b d4 c6 26 4c d4 ec 34 4d d4 d4 44 4e d4 e4
+54 4f d4 dd 63 4f d4 d8 72 50 d4 e3 82 50 d4 dd 92 50 d4 de a2 4f d4 d2 1f f0 20 8b 17 f0 20 8a 98 d8 78 81 13 e1 d4 69 b3 ac c4 6b b7 88 20 88 b3 7b 64 6a b4 7e 34 55 b4 ac 34 54 14 e5 34 56
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+m_scroll_data_table[] 512 1
+10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+10 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+14 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+c 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 1c 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+m_colour_palette[] 768 1
+0 0 0 38 32 28 16 10 6 11 b 1 1a 14 a 38 32 28 29 23 19 1a 14 a 3 0 0 22 1c 12 19 13 9 13 d 3 e 8 0 32 2c 22 19 21 11 3f 3f 3f 0 0 0 35 2f 25 2e 28 1e 2a 24 1a 26 20 16 22
+1c 12 1c 16 c 17 11 7 11 b 1 b 5 0 1b 15 b 12 c 2 a 4 0 20 1a 10 23 22 d 3f 3f 10 0 0 0 38 32 28 32 2c 22 2b 25 1b 25 1f 15 20 1a 10 1a 14 a 15 f 5 9 3 0 0 0 0 1c 16
+c 1c 16 c 1c 16 c 1c 16 c 1d 17 d 2a 24 1a 0 0 0 9 3 0 31 2b 21 2b 25 1b 25 1f 15 1a 14 a f 9 0 2a 24 1a 23 1d 13 1b 15 b 12 c 2 c 6 0 0 0 0 5 0 0 19 21 11 9 3f 3a
+e 8 0 35 2f 25 1c 16 c 31 2b 21 2c 26 1c 25 1f 15 0 0 0 13 d 3 9 3 0 38 32 28 2d 27 1d 25 1f 15 1f 19 f 15 f 5 3 0 0 38 32 28 8 2 0 35 2f 25 16 10 6 2a 24 1a 23 1d 13 1c
+16 c 0 0 0 10 a 0 7 1 0 38 32 28 2d 27 1d 2e 28 1e 26 20 16 1e 18 e 13 d 3 28 22 18 0 0 0 38 32 28 27 21 17 14 e 4 10 a 0 a 4 0 3 0 0 1a 14 a b 5 0 1c 16 c 15 f
+5 1d 17 d 2a 24 1a 38 32 28 31 2b 21 26 20 16 0 0 0 38 32 28 2d 27 1d 25 1f 15 1f 19 f 15 f 5 3 0 0 1a 14 a b 5 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 13 d 3 2a 24 1a
+0 0 0 0 0 0 28 22 18 21 1b 11 19 13 9 11 b 1 a 4 0 7 1 0 3 0 0 1 0 0 11 b 1 d 7 0 9 3 0 7 1 0 3 0 0 2 0 0 0 0 0 28 22 18 21 1b 11 19 13 9 11 b 1 8
+2 0 6 0 0 3 0 0 36 30 26 32 2c 22 2b 25 1b 23 1d 13 1b 15 b 15 f 5 e 8 0 1a 14 a 0 0 0 2c 26 1c 20 1a 10 14 e 4 10 a 0 b 5 0 9 3 0 7 1 0 2a 24 1a 19 13 9 15 f
+5 10 a 0 b 5 0 8 2 0 6 0 0 1a 14 a 0 0 0 1a 14 a 17 11 7 13 d 3 11 b 1 d 7 0 7 1 0 4 0 0 1a 14 a 1a 14 a 1a 14 a 1a 14 a 1a 14 a 1a 14 a 1a 14 a 1a 14 a
+0 0 0 35 2f 25 29 23 19 23 1d 13 1c 16 c 13 d 3 5 0 0 1a 14 a b 5 0 32 2c 22 b 5 0 a 4 0 7 1 0 17 11 7 14 e 4 10 a 0 0 0 0 38 32 28 29 23 19 27 21 17 20 1a 10 17
+11 7 3 0 0 3f 3f 3f 3f 3d 0 3f 2f 0 3f 20 0 3f 11 0 35 c 0 24 0 0 1b 1 1 11 3 3 0 0 0 32 2c 22 24 1e 14 b 5 0 a 4 0 7 1 0 1 0 0 1a 14 a b 5 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 13 d 3 14 e 4 0 0 0 38 32 28 2d 27 1d 2d 27 1d 26 20 16 1e 18 e 4 0 0 f 9 0 2c 26 1c 27 21 17 23 1d 13 1e 18 e 19 13 9 14 e 4 f 9 0 a 4 0
+m_base_addr[] 16 4
+4 4 4 4 4 4 4 4 6 6 6 6 6 6 6 6

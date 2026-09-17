@@ -75,7 +75,8 @@ static void tick() {
         if (!pat_busy) { pat_busy = true; lat = 4 + rnd() % 9; pat_n = 0; pat_last = false; pat_reqs++; }
         else if (pat_last) { top->pat_ack = 1; pat_busy = false; }
         else if (--lat == 0) {
-            uint32_t a = ((top->pat_addr + pat_n) * 4) & 0x1fffff;
+            uint32_t u = top->pat_addr + pat_n;                      // chip u[20] of the 8 MB space, mirrored within its 4 MB
+            uint32_t a = ((u >> 20) & 1) * 0x200000 + ((u << 2) & 0x1fffff);
             top->pat_q = ((uint32_t)rom[a] << 24) | ((uint32_t)rom[a + 1] << 16) | ((uint32_t)rom[a + 2] << 8) | rom[a + 3];
             top->pat_wr = 1; top->pat_idx = pat_n; pat_units++;
             if (++pat_n == top->pat_len) pat_last = true; else lat = 4;
@@ -98,13 +99,16 @@ static void reg_write(int rn, int data) { port_write(5, rn & 0x3f); port_write(4
 
 int main(int argc, char **argv) {
     Verilated::commandArgs(argc, argv);
-    if (argc < 4) { fprintf(stderr, "usage: tb_video state.txt ncv1.rom out.ppm\n"); return 2; }
+    if (argc < 4) { fprintf(stderr, "usage: tb_video state.txt ncv1.rom|ncv2.rom out.ppm\n"); return 2; }
     State st;
     if (!load_state(argv[1], st)) { fprintf(stderr, "cannot read %s\n", argv[1]); return 2; }
     {
         FILE *f = fopen(argv[2], "rb"); if (!f) { fprintf(stderr, "cannot read %s\n", argv[2]); return 2; }
-        fseek(f, 0x180000, SEEK_SET); rom.resize(0x200000);
-        if (fread(rom.data(), 1, rom.size(), f) != rom.size()) { fprintf(stderr, "short rom\n"); return 2; }
+        rom.resize(0x400003, 0);                                     // chip 0 then chip 1, 3 bytes of slack for the last unit
+        fseek(f, 0x180000, SEEK_SET);
+        if (fread(rom.data(), 1, 0x200000, f) != 0x200000) { fprintf(stderr, "short rom\n"); return 2; }
+        fseek(f, 0x580000, SEEK_SET);
+        if (fread(rom.data() + 0x200000, 1, 0x200000, f) != 0x200000) { fprintf(stderr, "short rom (image format before Vol.2?)\n"); return 2; }
         fclose(f);
     }
     top = new Vtb_video_top;

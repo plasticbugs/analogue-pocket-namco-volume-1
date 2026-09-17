@@ -64,6 +64,10 @@ set H8CORE [get_registers {*|h8300h_core:*|*}]
 set_multicycle_path -setup 5 -from $H8CORE -to $H8CORE
 set_multicycle_path -hold  4 -from $H8CORE -to $H8CORE
 set H8DIV [get_registers {*|h8300h:*|div_q[*] *|h8300h:*|div_rem[*]}]
+# the on-chip peripherals into the core: the core samples them on its enable
+set H8PERIPH [get_registers {*|h83002:*|*}]
+set_multicycle_path -setup 5 -from $H8PERIPH -to $H8CORE
+set_multicycle_path -hold  4 -from $H8PERIPH -to $H8CORE
 set_multicycle_path -setup 5 -from $H8DIV -to $H8CORE
 set_multicycle_path -hold  4 -from $H8DIV -to $H8CORE
 

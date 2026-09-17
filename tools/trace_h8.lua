@@ -58,6 +58,20 @@ emu.register_frame_done(function()
       end
     end
     pf:close()
+    -- ITU channel prescaler phase: MAME counts on (total_cycles + m_phase) >> divider, a
+    -- global phase the register dump cannot show. The TCNT reads above updated each
+    -- channel's m_last_clock_update to the current total cycle count.
+    local tf = io.open(out .. "/h8_timer.txt", "w")
+    for ch = 0, 4 do
+      local dev = machine.devices[":mcu:timer16:" .. ch]
+      if dev then
+        local last = emu.item(dev.items["0/m_last_clock_update"]):read(0)
+        local phase = emu.item(dev.items["0/m_phase"]):read(0)
+        local div = emu.item(dev.items["0/m_clock_divider"]):read(0)
+        tf:write(string.format("%d %d %d %d\n", ch, last, phase, div))
+      end
+    end
+    tf:close()
     dbg:command("wpset 200000:mcu,10000,r,,{logerror \"H8R %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")
     dbg:command("wpset 200000:mcu,10000,w,,{logerror \"H8W %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")
     dbg:command("wpset a00000:mcu,8000,r,,{logerror \"H8R %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")

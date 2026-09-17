@@ -3,18 +3,23 @@
     <setname>ncv1</setname>
     <year>1995</year>
     <manufacturer>Namco</manufacturer>
-    <rbf>ncv1</rbf>
+    <rbf>namcocollection</rbf>
     <region>World</region>
     <platform>Namco ND-1</platform>
 
     <!--
-      Flat image for the Analogue Pocket core (docs/hardware.md section 6):
+      Flat image for the Analogue Pocket core, the same layout for Vol.1 and
+      Vol.2 (docs/hardware.md section 6):
 
         0x000000  0x100000  68000 program, big-endian words as stored
         0x100000  0x080000  H8/3002 sub program
-        0x180000  0x200000  YGV608 character (pattern) ROM
+        0x180000  0x200000  YGV608 character ROM, chip 0 (pattern space 0x000000)
         0x380000  0x200000  C352 sample ROM
-        0x580000  total (5.5 MB)
+        0x580000  0x200000  YGV608 character ROM, chip 1 (pattern space 0x400000)
+        0x780000  total (7.5 MB)
+
+      Vol.1 has one 2 MB character ROM that MAME mirrors across the whole 8 MB
+      pattern space, so it fills both chip slots.
 
       nc1cg0.10c: MAME up to 0.270 listed CRC 355e7f29; 0.271 onwards lists the
       redump d4383199. Both are accepted.
@@ -25,5 +30,6 @@
         <part name="nc1sub.1c"    crc="48ea0de2"/>
         <part name="nc1cg0.10c"   crc="d4383199|355e7f29"/>
         <part name="nc1voice.7b"  crc="91c85bd6"/>
+        <part name="nc1cg0.10c"   crc="d4383199|355e7f29"/>
     </rom>
 </misterromdescription>

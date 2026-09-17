@@ -23,19 +23,24 @@ integer divider because the Pocket samples RGB on a clock phase-locked to it.
 
 ## 2. Memory
 
-The 5.5 MB image (`ncv1.mra`) lives in SDRAM through `target/pocket/ncv1_mem.sv`
+The 7.5 MB image (`ncv1.mra` or `ncv2.mra`, hardware.md section 6) lives in SDRAM through `target/pocket/ncv1_mem.sv`
 (modelled on gaia_mem.sv), one 16-bit word per address, big-endian words:
 
 | region | image offset | size | SDRAM word addr | client |
 |---|---|---|---|---|
 | 68000 program | 0x000000 | 1 MB | 0x000000 | `rom_cache` (68k), 2-word lines |
 | H8 program | 0x100000 | 512 KB | 0x080000 | `rom_cache` (H8), 2-word lines |
-| YGV608 pattern ROM | 0x180000 | 2 MB | 0x0C0000 | burst client: tile/sprite rows |
+| YGV608 pattern ROM, chip 0 | 0x180000 | 2 MB | 0x0C0000 | burst client: tile/sprite rows |
 | C352 samples | 0x380000 | 2 MB | 0x1C0000 | single byte reads |
+| YGV608 pattern ROM, chip 1 | 0x580000 | 2 MB | 0x2C0000 | the same burst client |
+
+The VDP's 8 MB pattern space is two 4 MB halves, each a 2 MB chip mirrored
+twice: pattern address bit 22 (unit address bit 20) picks the chip. Vol.1 has
+one chip, which MAME mirrors across all 8 MB, so its image carries it twice.
 
 Everything else is block RAM: shared RAM 64 KB (true dual port, 68k/H8),
 YGV608 tables (4 KB + 256 + 512 + 768 B) and two 512-pixel line buffers, H8
-on-chip RAM 512 B, EEPROM 2 KB (loaded/saved through data slot 1), two 4 KB
+on-chip RAM 512 B, EEPROM 2 KB (loaded/saved through data slot 2), two 4 KB
 instruction caches. ≈ 90 KB of the 385 KB available.
 
 Bandwidth: a video line is 414 dots x 15 = 6210 clocks. Plane fetch is 37
@@ -92,9 +97,35 @@ pulses by toggling a register. The `h8300h` wrapper around it does the
 per-clock work: issuing requests, capturing acknowledges, the 32-clock
 restoring divider and the one-clock pulses. That split is what makes
 `projects/ncv1_pocket.sdc`'s 5-cycle multicycle on `h8300h_core` valid.
-The interrupt controller's vector is a registered two-level priority encoder.
 With memories that acknowledge within 5 clocks (the ROM caches' hits, on-chip
 and shared RAM, the C352) every access still costs exactly 2 states.
+
+State-exactness against MAME. Vol.2's sub program calls through
+`jsr @aa:24` about a thousand times a frame, and its timer interrupts drifted
+six instructions a period until three differences from `h8.lst` were found by
+summing the RTL's states between MAME's timer interrupts (the ITU's period,
+136,536 states, is an absolute reference):
+
+* `jsr` and `bsr` charged 2 states for a prefetch at the target that, in this
+  core, is the next instruction's own opcode read. Removed: `jsr @aa:24` and
+  `bsr d:16` are 10 states, `bsr d:8` and `jsr @ern` 8, `jsr @@aa:8` 12.
+* Interrupt entry was 2 states short: MAME has already prefetched (and
+  discards) the opcode it is about to interrupt. Entry is now 14 states.
+* MAME takes an interrupt in the state its source raises it. The controller's
+  vector is therefore combinational into the core (which samples nothing: it
+  reads the vector where it decides), constrained as a multicycle path like
+  the rest of the core, and a TCNT write is staged one state (`h83002.sv`).
+
+With those, the RTL's states between consecutive timer interrupts equal
+MAME's to within the width of the last instruction, in all four captures.
+What is left is where inside its own instruction a TCNT reload lands, a state
+or two that a register dump cannot recover. An overflow a state either side of
+an instruction boundary moves the interrupt by one instruction, after which
+the two machines stack different state, so `sim/tb_sub.cpp` replays ITU
+interrupts at MAME's instruction (holding the pending bit back, or raising it
+and dropping the RTL's own copy) and fails if the RTL's own event is more than
+16 states from MAME's. Measured worst case: 7 states, 0.43 microseconds; the
+handler reloads the timer every period, so the skew does not accumulate.
 
 ### 3.3 YGV608
 
@@ -146,9 +177,13 @@ domain (the toggle-flag CDC of METHODOLOGY §5.4 lives inside it).
 
 ## 6. Save data
 
-The AT28C16 is the game's settings/high-score store. Data slot 1
-(`ncv1.sav`, 2 KB) loads it at boot and is written back on request as gaia
-does (`core_top.sv` save block).
+The AT28C16 is the game's settings/high-score store. Data slot 2 (2 KB) loads
+it at boot and is written back on request as gaia does (`core_top.sv` save
+block). Slot 0 is the instance JSON that names the collection (the Pocket
+consumes it; the core never sees it), slot 1 the ROM image, and each instance
+names its own save (`ncv1.sav`, `ncv2.sav`), so the collections keep separate
+settings. `core_top.sv` names a slot in four places (ROM download index, save
+download index, the core-initiated write, the size table); they move together.
 
 ## 7. Inputs
 
@@ -160,17 +195,20 @@ X = button 3, Start, Select = coin; Test/Service via the interact menu.
 
 | Block | State |
 |---|---|
-| H8/300H CPU (`rtl/h8300h.sv`) | trace replay PASS on boot (133k instr) and gameplay (802k instr) captures, state-exact against MAME |
-| H8/3002 peripherals + decode (`rtl/h83002.sv`, `rtl/ncv1_sub.sv`) | trace replay PASS with timers, INTC and ports modelled; timer IRQs within a few instructions of MAME |
-| YGV608 (`rtl/ygv608*.sv`) | pixel-exact on 65 states; worst line 2611/6210 clocks with random 4-12 clock memory latency |
-| C352 (`rtl/c352.sv`) | 40 s replay within 0.3% RMS of MAME, all register reads exact |
-| 68000 side, memories, top (`rtl/ncv1_main.sv`, `rtl/ncv1_core.sv`, `target/pocket/*`) | whole-machine bench boots: self-test RAM OK, sound, title screen; Quartus map pending |
+| H8/300H CPU (`rtl/h8300h.sv`) | trace replay PASS on four captures, Vol.1 and Vol.2 boot and gameplay (134k, 802k, 93k, 931k instructions), state-exact against MAME |
+| H8/3002 peripherals + decode (`rtl/h83002.sv`, `rtl/ncv1_sub.sv`) | the same four captures PASS with timers, INTC, ADC and ports modelled; every access exact, ITU interrupts within 7 states of MAME's (section 3.2) |
+| YGV608 (`rtl/ygv608*.sv`) | pixel-exact on 161 states (79 Vol.1, 78 Vol.2, 4 synthetic FLIP); worst line 3503/6210 clocks |
+| C352 (`rtl/c352.sv`) | 40 s replay within 0.3% RMS of MAME, all register reads exact (Vol.1's driver; the chip model has no per-game state) |
+| Memories (`target/pocket/ncv1_mem.sv`) | both 7.5 MB images load and read back through every port with the SDRAM chip model, the two character chips at their own addresses |
+| 68000 side, top (`rtl/ncv1_main.sv`, `rtl/ncv1_core.sv`, `target/pocket/*`) | whole-machine bench boots both collections |
 
-Also verified: a scripted whole-machine run (`sim/run_system.sh`) boots,
+Also verified: a scripted whole-machine run (`sim/run_system.sh`) boots Vol.1,
 takes coins, navigates the menus and starts Galaga. The boot runs about 50
-frames behind MAME's timeline (under a second). ROZ, used by the title
-animation, is pixel-exact on its 10 frozen states.
+frames behind MAME's timeline (under a second).
 
-Open: timing closure at 96 MHz (the first CI fit missed by 6.9 ns on the H8
-interrupt-to-sequencer path, now restructured and constrained); no hardware
-run yet.
+Timing closed at 96 MHz for the Vol.1-only build (0.1.0, +0.24 ns worst
+setup). The combined build changes the H8's interrupt path (section 3.2) and
+adds a multicycle constraint for it; CI reports the new slack. No hardware run
+yet: the instance-file packaging (three data slots) follows the Punch-Out!!
+and Atari System 2 cores, which load this way on a Pocket, but this core's
+slots have not been exercised on one.

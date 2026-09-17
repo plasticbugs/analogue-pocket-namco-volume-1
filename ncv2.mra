@@ -1,0 +1,32 @@
+<misterromdescription>
+    <name>Namco Classic Collection Vol.2</name>
+    <setname>ncv2</setname>
+    <year>1996</year>
+    <manufacturer>Namco</manufacturer>
+    <rbf>namcocollection</rbf>
+    <region>World</region>
+    <platform>Namco ND-1</platform>
+
+    <!--
+      Flat image for the Analogue Pocket core, the same layout for Vol.1 and
+      Vol.2 (docs/hardware.md section 6):
+
+        0x000000  0x100000  68000 program, big-endian words as stored
+        0x100000  0x080000  H8/3002 sub program
+        0x180000  0x200000  YGV608 character ROM, chip 0 (pattern space 0x000000)
+        0x380000  0x200000  C352 sample ROM
+        0x580000  0x200000  YGV608 character ROM, chip 1 (pattern space 0x400000)
+        0x780000  total (7.5 MB)
+
+      MAME names the second character ROM ncs1cg1.10f; romsets that call it
+      ncs1cg1.10e are found by CRC.
+    -->
+    <rom index="0" zip="ncv2.zip" md5="bd2cb00afb41af6aaaf3c36b1d01f129" type="merged">
+        <part name="ncs2main0.14e" crc="fb8a4123"/>
+        <part name="ncs2main1.13e" crc="7a5ef23b"/>
+        <part name="ncs1sub.1d"    crc="365cadbf"/>
+        <part name="ncs1cg0.10e"   crc="fdd24dbe"/>
+        <part name="ncs1voic.7c"   crc="ed05fd88"/>
+        <part name="ncs1cg1.10f"   crc="007b19de"/>
+    </rom>
+</misterromdescription>

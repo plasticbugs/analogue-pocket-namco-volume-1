@@ -1,0 +1,38 @@
+{
+    "data": {
+        "magic": "APF_VER_1",
+        "data_slots": [
+            {
+                "name": "Collection",
+                "id": 0,
+                "required": true,
+                "parameters": "0x113",
+                "extensions": [
+                    "json"
+                ]
+            },
+            {
+                "name": "ROM",
+                "id": 1,
+                "required": true,
+                "parameters": "0x108",
+                "extensions": [
+                    "rom"
+                ],
+                "address": "0x00000000"
+            },
+            {
+                "name": "Settings & Records",
+                "id": 2,
+                "required": false,
+                "parameters": "0x22",
+                "nonvolatile": true,
+                "extensions": [
+                    "sav"
+                ],
+                "address": "0x20000000",
+                "size_maximum": "0x800"
+            }
+        ]
+    }
+}

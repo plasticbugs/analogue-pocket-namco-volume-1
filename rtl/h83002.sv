@@ -130,6 +130,18 @@ module h83002 (
     logic [15:0] tcnt [5];
     logic [15:0] gra  [5];
     logic [15:0] grb  [5];
+    // A store lands later in MAME than here: MAME prefetches the next opcode (2 states)
+    // before the write and charges the write's own states before performing it, so a
+    // register changes about 3 states after this core writes it. Against that, MAME takes
+    // an interrupt in the state the counter overflows while this core needs two more (the
+    // pending bit, the priority encoder, the core's sampled vector). The two nearly
+    // cancel, and staging a TCNT write by one state puts the ITU's interrupt on MAME's
+    // instruction in every interrupt of the four trace captures (sim/run_sub.sh), with
+    // reads forwarded from the staged bytes so nothing sees the old count.
+    localparam int TCNT_WR_DELAY = 1;
+    logic  [1:0] tw_be  [5];        // staged byte lanes
+    logic [15:0] tw_val [5];
+    logic  [1:0] tw_cnt [5];        // states still to wait
 
     // write pulses (byte-lane aware: a word write hits two registers)
     wire io_wr = int_pulse & bus_wr & sel_io;
@@ -206,8 +218,8 @@ module h83002 (
             4'd0: tcr[c] <= d;
             4'd2: tier[c] <= d;
             4'd3: tflag[c] <= tflag[c] & d[2:0];       // writing 0 clears
-            4'd4: tcnt[c][15:8] <= d;
-            4'd5: tcnt[c][7:0] <= d;
+            4'd4: begin tw_val[c][15:8] <= d; tw_be[c][1] <= 1'b1; tw_cnt[c] <= 2'(TCNT_WR_DELAY - 1); end
+            4'd5: begin tw_val[c][7:0]  <= d; tw_be[c][0] <= 1'b1; tw_cnt[c] <= 2'(TCNT_WR_DELAY - 1); end
             4'd6: gra[c][15:8] <= d;
             4'd7: gra[c][7:0] <= d;
             4'd8: grb[c][15:8] <= d;
@@ -251,8 +263,8 @@ module h83002 (
             4'd1: io_read = 8'h00;                               // TIOR reads 0 in MAME
             4'd2: io_read = tier[c] | 8'hf8;
             4'd3: io_read = {5'b11111, tflag[c]};
-            4'd4: io_read = tcnt[c][15:8];
-            4'd5: io_read = tcnt[c][7:0];
+            4'd4: io_read = tw_be[c][1] ? tw_val[c][15:8] : tcnt[c][15:8];
+            4'd5: io_read = tw_be[c][0] ? tw_val[c][7:0]  : tcnt[c][7:0];
             4'd6: io_read = gra[c][15:8];
             4'd7: io_read = gra[c][7:0];
             4'd8: io_read = grb[c][15:8];
@@ -273,6 +285,7 @@ module h83002 (
             ddr4 <= 8'h00; ddr6 <= 8'h80; ddr8 <= 8'hf0; ddr9 <= 8'h00; ddra <= 8'h00; ddrb <= 8'h00;
             dr4 <= 8'h00; dr6 <= 8'h00; dr8 <= 8'h00; dr9 <= 8'h00; dra <= 8'h00; drb <= 8'h00;
             for (int i = 0; i < 5; i++) begin tcr[i] <= 8'h00; tier[i] <= 8'h00; tflag[i] <= 3'b000; tcnt[i] <= 16'h0000; gra[i] <= 16'hffff; grb[i] <= 16'hffff; end
+            for (int i = 0; i < 5; i++) begin tw_be[i] <= 2'b00; tw_val[i] <= 16'h0000; tw_cnt[i] <= 2'd0; end
             presc <= 3'd0; pend <= 64'd0; irq5_q <= 1'b1; irq5_prev <= 1'b1;
             adcsr <= 8'h00; adc_cnt <= 11'd0; adc_run <= 1'b0;
         end else begin
@@ -312,6 +325,21 @@ module h83002 (
                         if (ma) begin tflag[c][0] <= 1'b1; if (tier[c][0]) pend[24 + 4*c] <= 1'b1; end
                         if (mb) begin tflag[c][1] <= 1'b1; if (tier[c][1]) pend[25 + 4*c] <= 1'b1; end
                         if (ov) begin tflag[c][2] <= 1'b1; if (tier[c][2]) pend[26 + 4*c] <= 1'b1; end
+                    end
+                end
+            end
+            // ---- staged TCNT writes land TCNT_WR_DELAY states after this core writes them,
+            // after the counting above so a write on the same state wins (MAME's
+            // update_counter runs to the write's time, then loads)
+            if (cen) begin
+                for (int c = 0; c < 5; c++) begin
+                    if (tw_be[c] != 2'b00) begin
+                        if (tw_cnt[c] != 2'd0) tw_cnt[c] <= tw_cnt[c] - 2'd1;
+                        else begin
+                            if (tw_be[c][1]) tcnt[c][15:8] <= tw_val[c][15:8];
+                            if (tw_be[c][0]) tcnt[c][7:0]  <= tw_val[c][7:0];
+                            tw_be[c] <= 2'b00;
+                        end
                     end
                 end
             end
@@ -366,13 +394,16 @@ module h83002 (
         lowest = 7'd0;
         for (int v = 63; v >= 0; v--) if (m[v]) lowest = {1'b1, 6'(v)};
     endfunction
-    // registered: the core samples it on its enable, a clock late is invisible
-    always_ff @(posedge clk) begin
+    // Combinational, as MAME's update_irq_state is: the core can then take an interrupt in
+    // the same state the source raises it, which is what puts the ITU's interrupts on
+    // MAME's instruction (sim/run_sub.sh). The core samples this on its enable, once every
+    // 5-6 clocks, so projects/ncv1_pocket.sdc gives the path from the peripherals to the
+    // core the same multicycle as the core's own.
+    always_comb begin
         logic [6:0] hi, lo;
         hi = lowest(elig_hi);
         lo = lowest(elig_lo);
-        if (reset) irq_vector <= 8'd0;
-        else irq_vector <= hi[6] ? {2'b00, hi[5:0]} : lo[6] ? {2'b00, lo[5:0]} : 8'd0;
+        irq_vector = hi[6] ? {2'b00, hi[5:0]} : lo[6] ? {2'b00, lo[5:0]} : 8'd0;
     end
 
     // registered read data

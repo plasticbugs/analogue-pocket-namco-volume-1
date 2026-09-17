@@ -173,17 +173,58 @@ wave_start, wave_end, wave_loop; global 0x200 control, 0x202 key-on/off
 execute. Volume ramps one step per counter overflow; linear interpolation
 between samples unless FILTER flag set. Output = sum(voice) >> 3.
 
-## 6. ROM set `[MAME]`
+## 6. ROM sets `[MAME]`
+
+Vol.1 (`ncv1`, 1995: Galaga, Xevious, Mappy) and Vol.2 (`ncv2`, 1996: Pac-Man,
+Rally-X, Dig Dug) are the same board and the same MAME machine
+(`namcond1_state::namcond1`, same maps, same inputs, ROT90). They differ in
+the ROMs only, and Vol.2 populates the second character-ROM socket.
+
+Vol.1:
 
 | File | Size | CRC32 | Region |
 |---|---|---|---|
 | nc2main0.14d | 512 KB | 4ffc530b | 68000 0x00000 (16-bit words) |
 | nc2main1.13d | 512 KB | 26499a4e | 68000 0x80000 |
 | nc1sub.1c | 512 KB | 48ea0de2 | H8 0x00000 |
-| nc1cg0.10c | 2 MB | d4383199 (MAME ≥ 0.271), 355e7f29 (MAME ≤ 0.270) | YGV608 pattern ROM |
+| nc1cg0.10c | 2 MB | d4383199 (MAME ≥ 0.271), 355e7f29 (MAME ≤ 0.270) | YGV608 pattern ROM, mirrored across the 8 MB space |
 | nc1voice.7b | 2 MB | 91c85bd6 | C352 samples |
 
 The user's set carries the older `nc1cg0.10c`; the builder accepts both CRCs.
+
+Vol.2:
+
+| File | Size | CRC32 | Region |
+|---|---|---|---|
+| ncs2main0.14e | 512 KB | fb8a4123 | 68000 0x00000 |
+| ncs2main1.13e | 512 KB | 7a5ef23b | 68000 0x80000 |
+| ncs1sub.1d | 512 KB | 365cadbf | H8 0x00000 (a different sub program from Vol.1's) |
+| ncs1cg0.10e | 2 MB | fdd24dbe | YGV608 pattern 0x000000, mirrored at 0x200000 |
+| ncs1cg1.10f | 2 MB | 007b19de | YGV608 pattern 0x400000, mirrored at 0x600000 |
+| ncs1voic.7c | 2 MB | ed05fd88 | C352 samples |
+
+Some romsets name the second character ROM `ncs1cg1.10e`; the builder finds
+it by CRC.
+
+Both build into the same 7,864,320-byte image (`ncv1.mra`, `ncv2.mra`):
+
+| Offset | Size | Contents |
+|---|---|---|
+| 0x000000 | 1 MB | 68000 program |
+| 0x100000 | 512 KB | H8/3002 program |
+| 0x180000 | 2 MB | character ROM, chip 0 (pattern space 0x000000-0x3FFFFF) |
+| 0x380000 | 2 MB | C352 samples |
+| 0x580000 | 2 MB | character ROM, chip 1 (pattern space 0x400000-0x7FFFFF); Vol.1 repeats chip 0 |
+
+The first 5.5 MB are the layout the Vol.1-only core (0.1.0) used; chip 1 was
+appended so nothing else moved. MAME flags Vol.2 `UNEMULATED_PROTECTION`
+(the cuskey at C3FF00 returns 0 where the real part returns a jump vector);
+the games run in MAME regardless, and this core reproduces MAME's behaviour.
+What Vol.2 exercises that Vol.1 does not: gfx bank and character chip 1, a
+full-screen 16x16 8bpp ROZ plane at identity (Rally-X attract), and in the
+sub program `jsr @aa:24` in its main polling loop (about 1,000 a frame,
+against 11 in Vol.1), which is how a 2-state error in that instruction's cost
+surfaced (core-design.md section 3.2).
 
 ## 7. Open questions
 

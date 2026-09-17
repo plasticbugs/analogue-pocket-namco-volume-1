@@ -3,12 +3,13 @@
 # and require a pixel-exact match with MAME's snapshot of the same frame.
 #   tools/regress_render.sh [state-glob]
 cd "$(dirname "$0")/.."
-ROM=${ROM:-artifacts/ncv1.rom}
+# Vol.2 states are named ncv2_*; everything else is Vol.1.
 fail=0; n=0
 for st in artifacts/states/${1:-*}.txt; do
     png=${st%.txt}.png
     [ -f "$png" ] || { echo "SKIP $(basename "$st") (no PNG)"; continue; }
     n=$((n+1))
+    case $(basename "$st") in ncv2_*) ROM=artifacts/ncv2.rom ;; *) ROM=artifacts/ncv1.rom ;; esac
     if ! python3 tools/render_model.py "$st" --rom "$ROM" --compare "$png" --quiet; then
         fail=$((fail+1))
     fi

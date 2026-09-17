@@ -1,5 +1,6 @@
-# MAME romset - never commit ROMs
+# MAME romsets - never commit ROMs
 /ncv1/
+/ncv2/
 *.zip
 *.rom
 *.bin
@@ -40,6 +41,7 @@ artifacts/system/mame_late.txt
 artifacts/system/*.wav
 artifacts/ghidra/
 artifacts/ncv1.rom
+artifacts/ncv2.rom
 error.log
 artifacts/h8*/
 artifacts/c352/*.wav

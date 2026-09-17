@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     }
     FILE *f = fopen(argv[1], "rb"); if (!f) { fprintf(stderr, "no rom\n"); return 2; }
     fseek(f, 0, SEEK_END); long n = ftell(f); fseek(f, 0, SEEK_SET); img.resize(n); fread(img.data(), 1, n, f); fclose(f);
-    if (img.size() < 0x580000) { fprintf(stderr, "image too small\n"); return 2; }
+    if (img.size() < 0x780000) { fprintf(stderr, "image too small (7,864,320 bytes expected)\n"); return 2; }
 
     Vncv1_core *top = new Vncv1_core;
     auto tick = [&]() { top->clk = 0; top->eval(); top->clk = 1; top->eval(); };
@@ -95,7 +95,8 @@ int main(int argc, char **argv) {
             if (!pat.busy) { pat.busy = true; pat.cnt = pat.lat; pat_n = 0; pat_last = false; }
             else if (pat_last) { top->pat_ack = 1; }
             else if (--pat.cnt == 0) {
-                uint32_t b = 0x180000 + (((top->pat_addr + pat_n) & 0x7ffff) << 2);
+                uint32_t u = top->pat_addr + pat_n;
+                uint32_t b = ((u >> 20) & 1 ? 0x580000 : 0x180000) + ((u & 0x7ffff) << 2);   // chip u[20], mirrored
                 top->pat_q = ((uint32_t)word_at(b) << 16) | word_at(b + 2); pat_fetches++;
                 top->pat_wr = 1; top->pat_idx = pat_n;
                 if (++pat_n == top->pat_len) pat_last = true; else pat.cnt = 4;

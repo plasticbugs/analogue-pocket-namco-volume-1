@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build the Pocket .rom image for the Namco Classic Collection Vol.1 core from a MAME romset.
+"""Build the Pocket .rom image for the Namco Classic Collection core from a MAME romset.
 
 A core is FPGA gateware: it cannot unzip a romset or run a script, so the ROM
 image has to be assembled on a computer. This reads the .mra description and a
-MAME `ncv1` romset -- either the zip or a directory of loose files -- checks
+MAME `ncv1` or `ncv2` romset -- either the zip or a directory of loose files -- checks
 every part's CRC32, assembles the image in the order the .mra gives, and
 verifies the finished image against the md5 recorded in the .mra.
 
@@ -69,9 +69,17 @@ def get_part(parts, node):
     if name is None:
         return literal_bytes(node)
     data = parts.get(name.lower())
+    crc = node.get('crc')
+    if data is None and crc:
+        # romsets in the wild name some chips differently (ncv2's second
+        # character ROM is ncs1cg1.10f in MAME, ncs1cg1.10e in some dumps):
+        # take the one member whose CRC is listed
+        wanted = [int(c, 16) for c in crc.split('|')]
+        hits = [k for k, v in parts.items() if zlib.crc32(v) & 0xffffffff in wanted]
+        if len(hits) == 1:
+            data = parts[hits[0]]
     if data is None:
         sys.exit(f'error: {name} is missing from the romset')
-    crc = node.get('crc')
     if crc:
         # several acceptable dumps may be listed as "aaaaaaaa|bbbbbbbb"
         actual = zlib.crc32(data) & 0xffffffff
