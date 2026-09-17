@@ -31,9 +31,9 @@
                         "key": "pad_btn_start"
                     },
                     {
-                        "id": 143,
+                        "id": 144,
                         "name": "2 Player Start",
-                        "key": "pad_btn_y"
+                        "key": "pad_trig_r"
                     }
                 ]
             }

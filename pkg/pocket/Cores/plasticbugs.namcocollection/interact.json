@@ -31,60 +31,15 @@
                 ]
             },
             {
-                "name": "Scanlines",
-                "id": 61,
-                "type": "list",
+                "name": "Pass-and-Play",
+                "id": 66,
+                "type": "check",
                 "enabled": true,
                 "persist": true,
-                "address": "0xF3000000",
+                "address": "0xF2000000",
                 "defaultval": 0,
-                "mask": "0xFFFFFFFC",
-                "options": [
-                    {
-                        "name": "Off",
-                        "value": "0x00000000"
-                    },
-                    {
-                        "name": "25%",
-                        "value": "0x00000001"
-                    },
-                    {
-                        "name": "50%",
-                        "value": "0x00000002"
-                    },
-                    {
-                        "name": "75%",
-                        "value": "0x00000003"
-                    }
-                ]
-            },
-            {
-                "name": "Shadow Mask",
-                "id": 62,
-                "type": "list",
-                "enabled": true,
-                "persist": true,
-                "address": "0xF3000000",
-                "defaultval": 0,
-                "mask": "0xFFFFFF8F",
-                "options": [
-                    {
-                        "name": "Off",
-                        "value": "0x00000000"
-                    },
-                    {
-                        "name": "On",
-                        "value": "0x00000010"
-                    },
-                    {
-                        "name": "On, rotated",
-                        "value": "0x00000030"
-                    },
-                    {
-                        "name": "On, 2x",
-                        "value": "0x00000050"
-                    }
-                ]
+                "mask": "0xFFFFFF7F",
+                "value": "0x00000080"
             },
             {
                 "name": "Test Mode Switch",

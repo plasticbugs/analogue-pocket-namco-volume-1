@@ -23,9 +23,10 @@ Controls
   X               button 3
   Select          coin
   Start           1 player start
-  Y               2 player start
-  (a second pad plays player 2;
-  its Start is also 2 player start)
+  R               2 player start
+  A second pad plays player 2, or
+  turn on Pass-and-Play to play
+  both players on this one.
 
 Settings and records are kept in the
 EEPROM, saved per collection to

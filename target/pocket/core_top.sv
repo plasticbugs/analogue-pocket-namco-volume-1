@@ -323,7 +323,9 @@ module core_top
     wire             core_hs, core_vs, core_de;
     video_mixer #(.RW(BPP_R), .GW(BPP_G), .BW(BPP_B)) pocket_video_mixer (
         .clk_74a(clk_74a), .clk_sys(clk_sys), .clk_vid(clk_vid), .clk_vid_90deg(clk_vid_90deg),
-        .video_preset(video_preset), .scnl_sw(scnl_sw), .smask_sw(smask_sw),
+        // no scanline or shadow-mask entries in the menu: on this rotated 288x224 raster the
+        // platform's patterns are scaled and turned with the picture and look wrong
+        .video_preset(video_preset), .scnl_sw(4'd0), .smask_sw(4'd0),
         .core_r(core_r), .core_g(core_g), .core_b(core_b), .core_vs(core_vs), .core_hs(core_hs), .core_de(core_de),
         .video_rgb(video_rgb), .video_vs(video_vs), .video_hs(video_hs), .video_de(video_de),
         .video_rgb_clock(video_rgb_clock), .video_rgb_clock_90(video_rgb_clock_90),
@@ -427,14 +429,21 @@ module core_top
     wire        nv_load_we = nv_dl_download && nv_dl_index == 16'h2 && nv_dl_wr;
     // inputs: active low. DSW: bit 8 freeze, 9 test, 12 coin1, 13 coin2, 14 service, 15 service1
     wire        test_sw = mod_sw1[0] | svc_sw;
-    // A/B/X = buttons 1-3. Start is the 1P start; the 2P start is Y on the first pad (the
-    // handheld has one Start button and both collections ask for "1P or 2P start") or
-    // Start on a second pad. input.json lists exactly these, in this order.
+    // A/B/X = buttons 1-3, Select = coin, Start = 1P start; the 2P start is the right
+    // shoulder on the first pad (the handheld has one Start button and both collections
+    // ask for "1P or 2P start") or Start on a second pad. input.json lists exactly these,
+    // in this order. Pass-and-Play (mod_sw0[7]) feeds player 2's stick and buttons from
+    // the first pad as well, for two-player games on one handheld: the game itself
+    // alternates the players.
+    wire        pnp = mod_sw0[7];
     wire        p1_b1 = p1_btn_a, p1_b2 = p1_btn_b, p1_b3 = p1_btn_x;
-    wire        p2_b1 = p2_btn_a, p2_b2 = p2_btn_b, p2_b3 = p2_btn_x;
-    wire        start2 = p2_start | p1_btn_y;
-    wire [15:0] p1p2 = ~{start2, p2_b3, p2_b2, p2_b1, p2_up | j2_up, p2_down | j2_down, p2_left | j2_left, p2_right | j2_right,
-                         p1_start, p1_b3, p1_b2, p1_b1, p1_up | j1_up, p1_down | j1_down, p1_left | j1_left, p1_right | j1_right};
+    wire        c1_up = p1_up | j1_up, c1_down = p1_down | j1_down, c1_left = p1_left | j1_left, c1_right = p1_right | j1_right;
+    wire        p2_b1 = p2_btn_a | (pnp & p1_b1), p2_b2 = p2_btn_b | (pnp & p1_b2), p2_b3 = p2_btn_x | (pnp & p1_b3);
+    wire        c2_up = p2_up | j2_up | (pnp & c1_up), c2_down = p2_down | j2_down | (pnp & c1_down);
+    wire        c2_left = p2_left | j2_left | (pnp & c1_left), c2_right = p2_right | j2_right | (pnp & c1_right);
+    wire        start2 = p2_start | p1_btn_r1;
+    wire [15:0] p1p2 = ~{start2, p2_b3, p2_b2, p2_b1, c2_up, c2_down, c2_left, c2_right,
+                         p1_start, p1_b3, p1_b2, p1_b1, c1_up, c1_down, c1_left, c1_right};
     wire [15:0] dsw  = ~{mod_sw1[1], 1'b0, p2_select, p1_select, 2'b00, test_sw, 1'b0, 8'h00};
 
     wire        ga_cen_pix, ga_hs, ga_vs, ga_hb, ga_vb, ga_de;
@@ -465,12 +474,12 @@ module core_top
         .dbg_68k_halted(dbg_68k_halted), .dbg_68k_addr(dbg_68k_addr), .dbg_h8_run(dbg_h8_run), .dbg_h8_pc(dbg_h8_pc),
         .dbg_h8_istart(dbg_h8_istart), .dbg_h8_irq(dbg_h8_irq), .dbg_video_unsupported(dbg_vunsup), .dbg_video_unsup_src(dbg_vunsup_src), .dbg_gfxbank(dbg_gfxbank), .dbg_c352_overrun(dbg_c352_ovr)
     );
-    wire _unused_top = &{1'b0, p2_btn_y, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
+    wire _unused_top = &{1'b0, p2_btn_y, p1_btn_y, scnl_sw, smask_sw, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
                          dip_sw0, dip_sw1, dip_sw2, dip_sw3, mod_sw2, mod_sw3, status, clk_unused1, dataslot_requestread,
                          dataslot_requestread_id, dataslot_requestwrite_size, dataslot_update, dataslot_update_id,
                          dataslot_update_size, target_dataslot_err, cont1_trig, cont2_trig, cont3_trig, cont4_trig,
                          port_ir_rx, dbg_rx, user2, audio_adc, vblank, cram0_wait, cram1_wait, aux_sda, sram_dq,
-                         j1_lx, j1_ly, j1_rx, j1_ry, j2_lx, j2_ly, j2_rx, j2_ry, p1_btn_l1, p1_btn_l2, p1_btn_l3, p1_btn_r1,
+                         j1_lx, j1_ly, j1_rx, j1_ry, j2_lx, j2_ly, j2_rx, j2_ry, p1_btn_l1, p1_btn_l2, p1_btn_l3,
                          p1_btn_r2, p1_btn_r3, p2_btn_l1, p2_btn_l2, p2_btn_l3, p2_btn_r1, p2_btn_r2, p2_btn_r3,
                          m_start1, m_start2, m_coin1, m_coin2, m_coin, m_up, m_down, m_left, m_right, m_btn1, m_btn2, m_btn3,
                          m_btn4, m_btn5, m_btn6, m_btn7, m_btn8, rtc_epoch_seconds, rtc_date_bcd, rtc_time_bcd, rtc_valid,

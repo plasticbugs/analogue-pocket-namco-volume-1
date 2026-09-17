@@ -66,15 +66,19 @@ switches live between the cabinet's 3:4 and square pixels. The aspect values in
 ## Controls
 
 D-pad or stick moves; A = button 1, B = button 2, X = button 3, Select =
-coin, Start = 1 player start, Y = 2 player start. A second pad plays player 2,
-and its Start is also the 2 player start. The buttons can be remapped in the
-Pocket's controls menu; the directions are fixed.
+coin, Start = 1 player start, R (right shoulder) = 2 player start. A second
+pad plays player 2, and its Start is also the 2 player start. The buttons can
+be remapped in the Pocket's controls menu; the directions are fixed.
 
-The core's menu has Screen Shape, Scanlines, Shadow Mask, the Test Mode switch
+The core's menu has Screen Shape, **Pass-and-Play** (player 2's stick and
+buttons follow the first pad too, so a two-player game can be played on one
+handheld: the games alternate the players themselves), the Test Mode switch
 and **Cabinet Reverb** (Off, Light, Medium, Heavy): the short, dark room from
 the Punch-Out!! and Pole Position cores around the whole mix, an option and not
 part of the board. The C352's stereo image is kept; the room is the same on
-both sides. Test/service switches are in
+both sides. There are no scanline or shadow-mask entries: the platform's
+patterns are scaled and rotated with this vertical raster and look wrong on
+it. Test/service switches are in
 the core's interact menu.
 
 ## Building the core
