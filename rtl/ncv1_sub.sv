@@ -82,21 +82,27 @@ module ncv1_sub (
     assign sh_we    = wr ? (word ? 2'b11 : (a[0] ? 2'b01 : 2'b10)) : 2'b00;
     assign sh_wdata = wdata;
 
-    // C352: strobe the chip on the first clock of the request, ack the clock after
-    // (read data valid then); one access per request however long it stands
-    logic c_busy, c_pulse;
+    // C352: the strobe, address and data reach the chip through a register (the
+    // chip's register file is wide and the H8's decode is not short); read data is
+    // valid the clock after that, so the ack comes two clocks after the request
+    // rises. One access per request however long it stands; the H8 core samples
+    // the ack on its enable, at least five clocks later, so the extra clock is not
+    // visible to it.
+    logic c_busy, c_p1, c_pulse;
     wire  c_first = req & sel_c & ~c_busy;
     always_ff @(posedge clk) begin
-        if (reset) begin c_busy <= 1'b0; c_pulse <= 1'b0; end
-        else begin
-            c_pulse <= c_first;
+        if (reset) begin
+            c_busy <= 1'b0; c_p1 <= 1'b0; c_pulse <= 1'b0;
+            c352_wr <= 1'b0; c352_rd <= 1'b0; c352_addr <= 10'd0; c352_wdata <= 16'd0;
+        end else begin
+            c_p1 <= c_first;
+            c_pulse <= c_p1;
             if (c_first) c_busy <= 1'b1; else if (!req) c_busy <= 1'b0;
+            c352_wr <= c_first & wr;
+            c352_rd <= c_first & rd;
+            if (c_first) begin c352_addr <= a[10:1]; c352_wdata <= wdata; end
         end
     end
-    assign c352_wr    = c_first & wr;
-    assign c352_rd    = c_first & rd;
-    assign c352_addr  = a[10:1];
-    assign c352_wdata = wdata;
 
     // inputs and everything else: acked the clock after the request rises, once
     logic o_busy, o_pulse;

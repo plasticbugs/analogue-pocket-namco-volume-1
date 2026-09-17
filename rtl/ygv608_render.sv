@@ -119,7 +119,7 @@ module ygv608_render (
     typedef enum logic [5:0] {
         S_IDLE, S_PHASE, S_FILL,
         S_PL_INIT, S_PL_RS0, S_PL_RS1, S_PL_CS0, S_PL_CS1, S_PL_SETUP, S_PL_ROWRS0, S_PL_ROWRS1, S_PL_ROWRS2,
-        S_T_COL, S_T_CS0, S_T_CS1, S_T_PNT, S_T_PNT1, S_T_PAGE0, S_T_PAGE1, S_T_CODE, S_T_FETCH, S_T_WAIT, S_T_ALIGN, S_T_WRITE, S_T_NEXT,
+        S_T_COL, S_T_CS0, S_T_CS1, S_T_PNT, S_T_PNT1, S_T_PAGE0, S_T_PAGE1, S_T_CODE, S_T_CODE2, S_T_FETCH, S_T_WAIT, S_T_ALIGN, S_T_WRITE, S_T_NEXT,
         S_SP_INIT, S_SP_READ, S_SP_READ1, S_SP_DECODE, S_SP_FETCH, S_SP_WAIT, S_SP_WRITE, S_SP_NEXT,
         S_R_SETUP0, S_R_SETUP1, S_R_A, S_R_B, S_R_C, S_R_D, S_R_FETCH, S_R_WAIT,
         S_DONE
@@ -139,6 +139,8 @@ module ygv608_render (
     logic  [7:0] cs_lo;
     logic [15:0] pnt_word;
     logic [19:0] code;
+    logic  [2:0] ba_r;           // the row's base address, registered ahead of the tile-number sum
+    logic        outside_r;      // cell outside the page
     logic  [3:0] colour;
     logic        tflipx, tflipy;
     logic  [2:0] nfetch, fidx;
@@ -346,11 +348,14 @@ module ygv608_render (
             end
             S_T_PAGE1: begin
                 pnt_word <= pnt_q;
+                ba_r <= ba_val;
                 st <= S_T_CODE;
             end
+            // tile number in two clocks (MAME get_tile_info): the name, page and base
+            // address sum first; then the element clamp, colour fetch and bank
             S_T_CODE: begin
-                logic [19:0] j, jb, jsh; logic [7:0] name_lo, pg; logic [3:0] name_hi, attr, col_out, cf;
-                logic [19:0] elems; logic is8; logic [12:0] idx;
+                logic [19:0] j; logic [7:0] name_lo, pg; logic [3:0] name_hi, attr;
+                logic is8; logic [12:0] idx;
                 is8 = (plane == 1'b0) && plane_a_8bpp;
                 pg  = sdt_q;
                 idx = pnt_index(row, col, plane);
@@ -360,26 +365,30 @@ module ygv608_render (
                     name_lo = idx[0] ? pnt_word[7:0] : pnt_word[15:8]; name_hi = 4'd0; attr = 4'd0;
                 end
                 if (is8) attr = 4'd0;
-                j = {8'd0, name_hi, name_lo} + (pts16 ? {4'd0, pg, 8'd0} : {2'd0, pg, 10'd0}) + {9'd0, ba_val, 8'd0};
-                elems = is8 ? (pts16 ? 20'h08000 : 20'h20000) : (pts16 ? 20'h10000 : 20'h40000);
-                if (j >= elems) j = 20'd0;
-                cf = plane ? {1'b0, bpf} : {1'b0, apf};
-                col_out = attr;
-                if (cf != 4'd0 && !is8) begin
-                    jsh = pts16 ? (j >> {cf[2:0], 1'b0}) : (j >> {cf[2:0] - 3'd1, 1'b0});
-                    col_out = jsh[3:0];
-                end
-                if (is8) jb = j + (pts16 ? {5'd0, gfxbank, 13'd0} : {3'd0, gfxbank, 15'd0});
-                else     jb = j + (pts16 ? {4'd0, gfxbank, 14'd0} : {2'd0, gfxbank, 16'd0});
-                code <= jb;
-                colour <= col_out;
+                j = {8'd0, name_hi, name_lo} + (pts16 ? {4'd0, pg, 8'd0} : {2'd0, pg, 10'd0}) + {9'd0, ba_r, 8'd0};
+                code <= j;
+                colour <= attr;
                 tflipx <= flip & bits16 & pnt_word[3];
                 tflipy <= flip & bits16 & pnt_word[2];
                 cur_8bpp <= is8;
                 nfetch <= is8 ? (pts16 ? 3'd4 : 3'd2) : (pts16 ? 3'd2 : 3'd1);
                 fidx <= 3'd0;
+                outside_r <= (col >= page_x || row >= page_y);
+                st <= S_T_CODE2;
+            end
+            S_T_CODE2: begin
+                logic [19:0] j, jsh, elems; logic [3:0] cf;
+                elems = cur_8bpp ? (pts16 ? 20'h08000 : 20'h20000) : (pts16 ? 20'h10000 : 20'h40000);
+                j = (code >= elems) ? 20'd0 : code;
+                cf = plane ? {1'b0, bpf} : {1'b0, apf};
+                if (cf != 4'd0 && !cur_8bpp) begin
+                    jsh = pts16 ? (j >> {cf[2:0], 1'b0}) : (j >> {cf[2:0] - 3'd1, 1'b0});
+                    colour <= jsh[3:0];
+                end
+                if (cur_8bpp) code <= j + (pts16 ? {5'd0, gfxbank, 13'd0} : {3'd0, gfxbank, 15'd0});
+                else          code <= j + (pts16 ? {4'd0, gfxbank, 14'd0} : {2'd0, gfxbank, 16'd0});
                 // cells outside the page are MAME's blank tileinfo (code 0, colour 0, no flip)
-                if (col >= page_x || row >= page_y) begin
+                if (outside_r) begin
                     code <= 20'd0; colour <= 4'd0; tflipx <= 1'b0; tflipy <= 1'b0;
                 end
                 st <= roz ? S_R_FETCH : S_T_FETCH;
