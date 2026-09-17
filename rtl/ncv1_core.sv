@@ -90,8 +90,14 @@ module ncv1_core #(
     logic [18:1] s_rom_addr; logic s_rom_req, s_rom_ack; logic [15:0] s_rom_q;
     logic [15:1] b_sh_addr;  logic b_sh_req, b_sh_ack; logic [1:0] b_sh_we; logic [15:0] b_sh_wdata, b_sh_q;
     logic        c352_wr, c352_rd; logic [9:0] c352_addr; logic [15:0] c352_wdata, c352_q;
+    // Registered: it fans out across the H8. Asserted at once and held for thousands of
+    // clocks; released on an H8 enable, so every register of the enable-only core sees the
+    // release before its next enable, 5-6 clocks on (the multicycle in ncv1_pocket.sdc).
     logic        h8_reset;
-    always_ff @(posedge clk) h8_reset <= reset | ~h8_run;      // registered: it fans out across the H8
+    always_ff @(posedge clk) begin
+        if (reset | ~h8_run) h8_reset <= 1'b1;
+        else if (cen_h8)     h8_reset <= 1'b0;
+    end
 
     // the H8 sees the vblank as IRQ5 while the cuskey enables it (MAME: pulse per vblank when enabled)
     logic vb_d;

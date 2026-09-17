@@ -8,7 +8,7 @@
 # package (which is exactly what happened once).
 set -e
 RUN="$1"
-DEST="${2:-$HOME/Desktop/mcr68-pocket-sd}"
+DEST="${2:-$HOME/Desktop/namcocollection-pocket-sd}"
 [ -n "$RUN" ] || { echo "usage: fetch_build.sh <run-id> [dest]"; exit 1; }
 cd "$(dirname "$0")/.."
 

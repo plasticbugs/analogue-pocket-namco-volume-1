@@ -64,6 +64,11 @@ set H8CORE [get_registers {*|h8300h_core:*|*}]
 set_multicycle_path -setup 5 -from $H8CORE -to $H8CORE
 set_multicycle_path -hold  4 -from $H8CORE -to $H8CORE
 set H8DIV [get_registers {*|h8300h:*|div_q[*] *|h8300h:*|div_rem[*]}]
+# the H8's reset (rtl/ncv1_core.sv h8_reset) is released on an enable and asserted for
+# thousands of clocks, so the core's registers have until the next enable to see it
+set H8RST [get_registers {*|ncv1_core:*|h8_reset}]
+set_multicycle_path -setup 5 -from $H8RST -to $H8CORE
+set_multicycle_path -hold  4 -from $H8RST -to $H8CORE
 # the on-chip peripherals into the core: the core samples them on its enable
 set H8PERIPH [get_registers {*|h83002:*|*}]
 set_multicycle_path -setup 5 -from $H8PERIPH -to $H8CORE

@@ -1,5 +1,5 @@
 ################################################################################
-# Compile the Namco Classic Collection Vol.1 Pocket core and upload the SD-card package.
+# Compile the Namco Classic Collection Pocket core and upload the SD-card package.
 # Runs on every push to main, on tags, and on manual dispatch.
 ################################################################################
 name: Compile Core
