@@ -1,0 +1,5 @@
+`verilator_config
+// Pocket memory controllers vendored under target/pocket: the S.T.U.N. Runner
+// SDRAM controller and the SNES core's PSRAM controller (MIT). Waived by path.
+lint_off -file "*target/pocket/psram.sv"
+lint_off -file "*target/pocket/sdram_ctrl.sv"

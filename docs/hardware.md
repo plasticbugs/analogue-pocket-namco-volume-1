@@ -1,0 +1,178 @@
+# Namco Classic Collection Vol.1 (Namco, 1995) — hardware notes
+
+Namco ND-1 board (MAME `namco/namcond1.cpp`, set `ncv1`). Games: Galaga,
+Xevious, Mappy, each in Original and Arrangement form. Every claim carries its
+source: `[MAME]` from the driver/device source in `ref/mame/`, `[XML]` from
+`mame -listxml ncv1`, `[GURU]` from the PCB readme in the driver, `[PROBE]`
+measured with a Lua script in `tools/`, `[VERIFIED]` matched against the RTL.
+
+## 1. Clocks `[GURU][MAME]`
+
+| Clock | Value | Derivation |
+|---|---|---|
+| Master | 49.152 MHz | crystal |
+| 68000 | 12.288 MHz | 49.152 / 4 |
+| H8/3002 | 16.384 MHz | 49.152 / 3 |
+| C352 | 24.576 MHz | 49.152 / 2; sample rate = 24.576 MHz / 288 = 85.333 kHz |
+| YGV608 | 25.326 MHz crystal | dot clock = crystal / 2 or / 4 (R#7 DCKM); see §4.1 |
+| Measured video | HSync 15.47 kHz, VSync 59.96 Hz | `[GURU]` |
+
+MAME clocks its screen at 49.152/8 = 6.144 MHz with 402 x 261 (58.56 Hz)
+`[XML]`, which is a placeholder; the YGV608 CRTC registers the game programs
+are in §4.1.
+
+## 2. 68000 memory map `[MAME]`
+
+| Range | Function | Notes |
+|---|---|---|
+| 000000–0FFFFF | program ROM | `nc2main0.14d` at 0, `nc2main1.13d` at 80000; 16-bit words as stored |
+| 400000–40FFFF | shared RAM (64 KB) | H8 sees it at 200000 |
+| 800000–80000F | YGV608 ports P#0–P#7 | upper byte only (`umask16 ff00`), one port per word |
+| A00000–A00FFF | AT28C16 EEPROM (2 KB) | upper byte only |
+| C3FF00–C3FFFF | "cuskey" (MACH211 KC001) | see below |
+
+Cuskey `[MAME]`: reads at +2E and +30 return 0 (a jump vector inside ISR2;
+zero means return). Write +0A: non-zero releases the H8 from reset and enables
+its IRQ5 (per-vblank); zero disables. Write +0C: bits 1:0 select the YGV608
+graphics bank (`set_gfxbank`, 64K 8x8 tiles per bank in 4bpp). The game
+writes +00, +0A, +0C, +0E `[PROBE]`.
+
+Interrupts: YGV608 vblank → 68000 IPL1, raster → IPL2. The game enables only
+the vblank interrupt (R#14 = 01) `[PROBE]`.
+
+## 3. H8/3002 sub CPU `[MAME]`
+
+Hitachi H8/3002 (H8/300H core, no internal ROM, 512 bytes on-chip RAM at
+FFFD10–FFFF0F, on-chip peripherals at FFFF20–FFFFFF), advanced mode (24-bit
+addresses), 16.384 MHz.
+
+| Range | Function |
+|---|---|
+| 000000–07FFFF | program ROM `nc1sub.1c` |
+| 200000–20FFFF | shared RAM (64 KB) |
+| A00000–A07FFF | C352 (word access; register index = address/2) |
+| C00000–C00001 | DSW port (active low) |
+| C00002–C00003 | P1/P2 port (active low) |
+| C00010, C00030, C00040 | unmapped (watchdog/outputs?) |
+
+The H8 gets IRQ5 pulsed once per vblank while enabled through the cuskey. It
+handles inputs (reads the two ports, publishes to shared RAM), the C352 sound
+driver and the EEPROM-less bookkeeping the 68000 asks for via shared RAM.
+
+On-chip peripheral registers the sub program touches `[PROBE]` (partial, the
+tap crashed before the counts were written): ITU TSTR/TSNC (FFFF60/61),
+channel 0 TCR/TIOR/TIER/TSR/TCNT/GRA (FFFF64–FFFF6B), port DDR/DR at
+FFFFC5/C7/C9/CB/CD/CF/D1/D3/D5/D7, interrupt controller (FFFFF2–FFFFF8),
+FFFFEC/EE, FFFFF4 (SYSCR/MSTCR area), watchdog FFFFA8/AA? — to be completed
+from the instruction trace.
+
+## 4. YGV608 video `[MAME ygv608.cpp][PROBE]`
+
+Yamaha YGV608 "PVDC2" pattern VDP with internal pattern name table (4 KB),
+sprite attribute table (256 B = 64 sprites), scroll tables (2 x 256 B) and a
+256-entry 18-bit palette; pattern data comes from the external 2 MB character
+ROM `nc1cg0.10c` (mirrored to 8 MB) through the gfx bank in the cuskey.
+
+### 4.1 Register programming seen in ncv1 `[PROBE]`
+
+| Reg | Value | Meaning |
+|---|---|---|
+| R#2 | CF | CPAW, CPAR, SCAW, SCAR, SAAW, SAAR auto-increment on; B/A=0 |
+| R#7 | 05 | DSPE=1, MD=2 (1 plane, 16 colours, 16-bit pattern names), ZRON=0, FLIP=0, DCKM=0 |
+| R#8 | F0 | HDS=3, VDS=3 (512 x 512 display domain), PGS=0 (64x32 page) |
+| R#9 | 00 | PTS=8x8 patterns, SLH=SLV=0 (whole-screen scroll) |
+| R#10 | 40 | SPA=1, SPAS=0 → all sprites 16x16, no flip, SPRD=0 |
+| R#11 | 00 | PRM=0 (sprites above plane A above plane B), no transparency enables |
+| R#12 | 00 | colour from attribute bits (no colour-fetch modes) |
+| R#13 | FF | border colour |
+| R#14 | 01 | vblank IRQ enabled |
+| R#15/16 | DC/DC | raster IRQ position (unused, mask off) |
+| R#17–24 | 00 | base addresses |
+| R#25–38 | 0 except R#29=02, R#36=02 | ROZ identity (DX=DY=1.0), unused (ZRON=0) |
+| R#39 | 62 | HSW=3 (48 dots), HBW=2 (32 dots) |
+| R#40 | 64 | HDW=36 (576 units → 288 pixels), HTL[9:8]=01 |
+| R#41 | 36 | HDS=0x36 → display start 108 |
+| R#42 | 92 | HTL[7:0] → htotal 804 |
+| R#43 | 60 | VSW=3, VBW=0 |
+| R#44 | 1C | VDW=28 → 224 lines |
+| R#45 | 9A | VTL[8]=1, VDS=26 |
+| R#46 | 05 | VTL[7:0] → vtotal 261 |
+
+These values were constant through boot, attract and Galaga; other games and
+modes must be probed the same way (`tools/probe_ygv.lua`).
+
+### 4.2 Timing
+
+MAME renders 288 x 224 from htotal 804/2 = 402 and vtotal 261 at 6.144 MHz
+(58.56 Hz). The real board measures 15.47 kHz / 59.96 Hz `[GURU]`, i.e. 258
+lines per frame and ~409.3 dot clocks per line at 25.326/4 = 6.3315 MHz, or
+equivalently 1637 crystal clocks per line. The chosen RTL timing is in
+`rtl/ygv608_crtc.sv` and this section will be updated when it is fixed.
+
+### 4.3 Pattern name table (mode MD=2, 64x32 page, 8x8) `[MAME]`
+
+Two bytes per cell, cell index = row*64 + col, byte 0 = pattern name low 8
+bits, byte 1: bits 3:0 = pattern name bits 11:8 (masked by NA8 = 0F when
+FLIP=0), bits 7:4 = colour (16-colour palette bank). Pattern number is then
+`+ scroll_table[0xC0 + page] << 10` and `+ base_addr[row >> 3] << 8`, then
+`+ gfxbank * 0x10000`. Page selection uses the plane's scroll x/y (§4.4) and
+the 64x32 page: page = ((sx + col*8) % 2048) / 256 + (((sy + row*8) % 2048) /
+512) * 8, masked to 5 bits.
+
+### 4.4 Scroll tables `[MAME]`
+
+Per plane, 256 bytes: [0x00..0x01] scroll y (12 bits, low byte first, per
+column when SLV != 0), [0x80..0x81] scroll x (12 bits), [0xC0 + page] the
+page's pattern-name high bits.
+
+### 4.5 Sprites `[MAME]`
+
+64 entries x 4 bytes: sy[7:0], sx[7:0], attr (7:4 colour, 3:2 size/flip
+selected by SPAS, 1 = sx bit 8, 0 = sy bit 8), pattern name (8 bits). The
+16x16 pattern code is `(sprite_bank & FC) << 6 | sn`, plus `gfxbank * 0x4000`.
+Drawn last-entry-first (entry 63 first, so entry 0 is on top), transparent
+pen 0, position (sx, sy + 1) & 1FF with wraparound at 512, clipped to 512x512.
+
+### 4.6 Pattern data format `[MAME]`
+
+4bpp, 16 planes packed: the 8x8 4-bit layout `pts_4bits_layout` places the
+8 rows of an 8x8 pattern at word offsets using x offsets `STEP8(n*256, 4)` and
+y offsets `STEP8(n*256, 32)`. In bytes: an 8x8 tile occupies 32 bytes; pixel
+(x, y) of tile t is nibble `(t*32 + y*4 + x/2)`, high nibble first. 16x16
+tiles are four 8x8 tiles in the order (0,0) (1,0) (0,1) (1,1) at t, t+1,
+t+4?, ... — see `tools/render_model.py` for the exact decode, verified
+against MAME's `pts_4bits_layout_xoffset/yoffset` tables.
+
+### 4.7 Palette `[MAME]`
+
+256 entries of 3 bytes (R, G, B), 6 significant bits each (`pal6bit`), written
+through P#3 with auto-increment; entry 0 of each 16-colour bank is transparent
+for sprites, and for planes only when transparency is enabled (not in ncv1).
+
+## 5. Sound `[MAME c352.cpp]`
+
+Namco C352, 32 voices, 8-bit linear or 8-bit mu-law samples from the 2 MB
+`nc1voice.7b` (24-bit address, 16 MB max), 4 outputs of which the board wires
+front-left/front-right (the second DAC is not fitted). Sample clock 85.333
+kHz. Per-voice registers (8 x 16-bit): vol_f, vol_r, freq, flags, wave_bank,
+wave_start, wave_end, wave_loop; global 0x200 control, 0x202 key-on/off
+execute. Volume ramps one step per counter overflow; linear interpolation
+between samples unless FILTER flag set. Output = sum(voice) >> 3.
+
+## 6. ROM set `[MAME]`
+
+| File | Size | CRC32 | Region |
+|---|---|---|---|
+| nc2main0.14d | 512 KB | 4ffc530b | 68000 0x00000 (16-bit words) |
+| nc2main1.13d | 512 KB | 26499a4e | 68000 0x80000 |
+| nc1sub.1c | 512 KB | 48ea0de2 | H8 0x00000 |
+| nc1cg0.10c | 2 MB | d4383199 (MAME ≥ 0.271), 355e7f29 (MAME ≤ 0.270) | YGV608 pattern ROM |
+| nc1voice.7b | 2 MB | 91c85bd6 | C352 samples |
+
+The user's set carries the older `nc1cg0.10c`; the builder accepts both CRCs.
+
+## 7. Open questions
+
+- Exact YGV608 line/frame timing (no datasheet found yet).
+- Which H8 peripherals matter (ITU channel 0 as the sound tick? SCI unused?).
+- EEPROM contents needed for first boot (MAME boots with a blank one).

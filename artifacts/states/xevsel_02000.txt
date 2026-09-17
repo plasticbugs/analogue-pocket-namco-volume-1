@@ -1,0 +1,164 @@
+frame 2000
+m_md 1
+m_page_x 20
+m_page_y 20
+m_page_size 0
+m_pattern_size 1
+m_bits16 1
+m_pny_shift 5
+m_na8_mask f
+m_base_y_shift 2
+m_h_div_size 0
+m_v_div_size 0
+m_col_shift 8
+m_flip 0
+m_zron 0
+m_dspe 1
+m_dckm 0
+m_h_display_size 0
+m_v_display_size 0
+m_roz_wrap_disable 0
+m_scroll_wrap_disable 0
+m_planeA_trans_enable 1
+m_planeB_trans_enable 0
+m_priority_mode 1
+m_cbdr 0
+m_yse 0
+m_scm 0
+m_planeA_color_fetch 0
+m_planeB_color_fetch 0
+m_sprite_color_fetch 0
+m_mosaic_aplane 0
+m_mosaic_bplane 0
+m_sprite_disable 0
+m_sprite_aux_mode 1
+m_sprite_aux_reg 0
+m_border_color 0
+m_sprite_bank 98
+m_namcond1_gfxbank 0
+m_vblank_irq_mask 1
+m_raster_irq_mask 0
+m_raster_irq_hpos 0
+m_raster_irq_vpos 0
+m_raster_irq_mode 0
+m_ax 0
+m_ay 0
+m_dx 0
+m_dy 0
+m_dxy 0
+m_dyx 0
+m_raw_ax 0
+m_raw_ay 0
+m_raw_dx 0
+m_raw_dy 0
+m_raw_dxy 0
+m_raw_dyx 0
+m_crtc.htotal 324
+m_crtc.vtotal 105
+m_crtc.display_hstart 6c
+m_crtc.display_vstart 1a
+m_crtc.display_width 240
+m_crtc.display_height e0
+m_crtc.display_hsync 30
+m_crtc.display_vsync 3
+m_crtc.border_width 20
+m_crtc.border_height 0
+m_screen_status 10
+m_ba_plane_scroll_select 1
+m_plane_select_access 0
+m_xtile_ptr e
+m_ytile_ptr e
+m_pattern_name_table[] 4096 1
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 f3 4 f3 4 f0 0 f3 4 f0 0 b 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 f3 4 f3 4 f0 0 f3 4 f0 0 0 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 85 35 f3 4 f0 0 f3 4 f0 0 f5 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 84 35 87 35 f0 0 f3 4 f0 0 f4 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+fa 20 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 60 35 f0 0 58 15 58 35 83 35 54 35 f0 0 4 45 f0 0 f3 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f9 20 a 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 5f 35 f0 0 5a 15 5a 35 82 35 50 35 f0 0 3 45 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f8 20 14 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 5e 35 f0 0 63 15 3f 35 81 35 53 35 f0 0 2 45 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f7 20 3c 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 5d 35 f0 0 62 15 65 35 80 35 52 35 f0 0 1 45 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f6 20 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 5c 35 f0 0 36 15 64 35 5b 35 51 35 f0 0 0 45 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f5 20 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 5b 35 f0 0 61 15 f3 34 7f 35 86 35 f0 0 f3 4 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 a 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 7e 35 4e 35 f0 0 f3 4 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f2 30 0 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 f3 4 f3 4 f0 0 f3 4 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f1 30 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 f3 4 f3 4 f0 0 f3 4 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f3 4 f0 0 f3 14 f3 34 f3 4 f3 4 f0 0 f3 4 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0 f0 0
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d6 84 e0 84 ea 84 f2 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d5 84 df 84 e9 84 f1 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d4 84 de 84 e8 84 ed 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d3 84 dd 84 e7 84 f0 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d2 84 dc 84 e6 84 ef 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d1 84 db 84 e5 84 ee 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 d0 84 da 84 e4 84 ed 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 cf 84 d9 84 e3 84 ed 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 ce 84 d8 84 e2 84 ec 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 cd 84 d7 84 e1 84 eb 84 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4 f3 4
+m_sprite_attribute_table.b[] 256 1
+9c a4 4 92 24 a4 4 92 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+m_scroll_data_table[] 512 1
+2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+8 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+m_colour_palette[] 768 1
+2 2 2 2c 0 0 16 16 18 3f 3f 3f c c d 2c 2c 2d 0 0 0 21 21 23 1f 1a 3f 3f 0 3f 3f 3f 0 0 22 3f 3f 26 0 3f 0 0 3f 0 0 7 6 7 2 2 2 19 18 12 22 21 18 0 0 0 30 2f 24 11
+10 b 3f 3f 31 3f 0 0 3f 0 0 0 30 0 0 24 0 0 19 0 0 10 0 0 8 0 0 3f 0 3f 3f 0 2 2 2 3f 3f 3f 3f 0 0 3f 3f 3f 3f 0 0 0 22 3f 3f 0 0 3f 3f 3f 3f 3f 3f 3f 0 0 0 22
+3f 3f 0 0 3f 3f 3f 3f 0 0 3f 26 0 3f 26 0 2 2 2 0 0 0 3f 0 0 3f 3f 3f 0 22 3f 3f 3f 3f 0 22 3f 3f 26 0 3f 3f 3f 3f 3f 3f 0 22 3f 3f 0 0 2 2 2 0 0 0 2 2 2 3f 3f 3f
+2 2 2 0 0 0 3f 0 0 0 0 0 3f 3f 3f 2 2 2 0 0 0 2 2 2 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 31 2d 16 3f 0 0 2 2 2 3f 3f 3f 2c 2c 2d 21 21 23 16 16 18 c
+c d 3f 3f 0 3f 26 0 3f 0 0 2c 0 0 a a 0 27 27 f 1d 1c 7 15 14 0 0 0 0 31 2d 16 2 2 2 17 21 8 8 a 4 a 10 5 f 1d 5 21 21 8 26 27 f 10 16 2 e 16 7 36 36 36 19 25
+34 0 1e 3f b 17 35 23 23 20 0 0 0 2c 2c 2c 2 2 2 1e f 6 16 18 3 22 15 b 26 21 d 2c 2c 2c 1b 1b 1b 25 23 1e 21 27 1f 17 21 8 b c 4 d 10 6 f 1d 5 1f 21 c 26 27 f 13 16 3
+2 2 2 3f 3f 3f 19 19 19 0 0 0 0 2a 3f 0 0 3f 0 17 2d 3f 0 0 3f 3f 0 0 39 0 0 15 3f 3f 26 0 20 b 10 2c 1a 0 9 1d 2e 4 4 4 2 2 2 1c 2a 9 17 20 3 f 28 5 12 18 6 c
+13 4 2a 36 f 24 2e 10 36 36 36 2c 2c 2d 21 21 23 16 16 18 c c d 0 0 0 3f 0 0 2 2 2 2 2 2 1c 2a 9 17 20 3 f 28 5 12 18 6 c 13 4 2a 36 f 24 2e 10 27 27 f 1d 1c 7 15 14
+0 a a 0 3f 3f 27 0 0 0 3f 0 0 0 0 0 2 2 2 1c 2a 9 17 20 3 35 2e e 29 19 8 36 36 36 0 1e 3f 36 36 36 2c 2c 2d 21 21 23 16 16 18 c c d 0 0 0 3f 0 0 0 17 2d 1b 1b 1b
+2 2 2 1c 2a 9 17 20 3 35 2e e 29 19 8 36 36 36 0 1e 3f 27 27 f 1d 1c 7 15 14 0 a a 0 3f 3f 27 0 0 0 3f 0 0 2 2 2 4 4 4 2 2 2 1f 1f 1f 1e f 6 36 36 36 2c 2c 2d 21
+21 23 16 16 18 c c d 0 0 0 3f 0 0 2 2 2 0 0 0 2 2 2 1f 1f 1f 1a 1a 17 16 18 3 2 2 2 1f 1f 1f 1e f 6 27 27 f 1d 1c 7 15 14 0 a a 0 3f 3f 27 0 0 0 3f 0 0 2 2
+2 0 0 0 2 2 2 0 0 0 2 2 2 4 4 4 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 0 0 2 2 2 0 18 0
+m_base_addr[] 16 4
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0

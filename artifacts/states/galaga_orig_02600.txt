@@ -1,0 +1,164 @@
+frame 2600
+m_md 0
+m_page_x 40
+m_page_y 20
+m_page_size 0
+m_pattern_size 0
+m_bits16 0
+m_pny_shift 6
+m_na8_mask f
+m_base_y_shift 2
+m_h_div_size 0
+m_v_div_size 0
+m_col_shift 8
+m_flip 0
+m_zron 0
+m_dspe 1
+m_dckm 0
+m_h_display_size 0
+m_v_display_size 0
+m_roz_wrap_disable 0
+m_scroll_wrap_disable 0
+m_planeA_trans_enable 1
+m_planeB_trans_enable 0
+m_priority_mode 1
+m_cbdr 0
+m_yse 0
+m_scm 0
+m_planeA_color_fetch 3
+m_planeB_color_fetch 3
+m_sprite_color_fetch 0
+m_mosaic_aplane 0
+m_mosaic_bplane 0
+m_sprite_disable 0
+m_sprite_aux_mode 0
+m_sprite_aux_reg 1
+m_border_color 0
+m_sprite_bank 18
+m_namcond1_gfxbank 0
+m_vblank_irq_mask 1
+m_raster_irq_mask 0
+m_raster_irq_hpos 0
+m_raster_irq_vpos 0
+m_raster_irq_mode 0
+m_ax 0
+m_ay 0
+m_dx 0
+m_dy 0
+m_dxy 0
+m_dyx 0
+m_raw_ax 0
+m_raw_ay 0
+m_raw_dx 0
+m_raw_dy 0
+m_raw_dxy 0
+m_raw_dyx 0
+m_crtc.htotal 324
+m_crtc.vtotal 105
+m_crtc.display_hstart 6c
+m_crtc.display_vstart 1a
+m_crtc.display_width 240
+m_crtc.display_height e0
+m_crtc.display_hsync 30
+m_crtc.display_vsync 3
+m_crtc.border_width 20
+m_crtc.border_height 0
+m_screen_status 10
+m_ba_plane_scroll_select 1
+m_plane_select_access 0
+m_xtile_ptr 0
+m_ytile_ptr 16
+m_pattern_name_table[] 4096 1
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff 28 29 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+6e ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+7b ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+78 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+6c 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+7c 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+71 32 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+70 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+72 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+71 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+79 30 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+7e 31 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff bc bd ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+61 ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff be bf ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff bc bd ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff be bf ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff ff
+7a 0 ca 0 0 0 0 8f 39 0 51 0 0 0 c 0 0 0 0 0 0 0 0 0 0 0 2b 7a 0 ca 0 0 0 0 8f 39 0 54 0 0 0 c 0 72 0 f2 0 0 0 2c 0 0 0 0 0 0 0 0 0 0 0 0 0 2b
+0 0 0 0 0 0 0 0 97 0 0 0 7e 0 87 0 be 0 0 0 0 a5 e8 0 0 0 0 0 0 0 0 0 0 0 0 97 0 0 0 7e 0 87 0 0 0 0 0 0 0 0 2d 0 0 be 0 0 0 0 a5 e8 0 0 0 0
+1f 7 0 0 0 0 0 0 2c 0 0 0 7d 0 3f 0 0 29 0 0 8c 0 0 0 0 0 0 1f 7 0 0 0 0 0 0 2c 0 0 0 7d 0 3f 4f 0 0 3a 0 0 0 0 0 ab 0 0 29 0 0 8c 0 0 76 0 0 0
+0 0 0 45 0 0 0 0 0 98 73 0 0 0 0 0 54 0 0 0 0 8c 9f 0 0 0 0 0 0 0 45 0 0 0 0 0 98 73 0 0 0 0 0 7b 0 0 0 0 5a 0 0 6d 0 54 0 0 0 0 8c 9f 0 0 0 0
+0 0 2f db cd e2 0 0 a6 0 b2 0 0 0 0 0 0 0 0 0 0 0 0 76 0 0 99 0 0 2f db cd e2 0 0 a6 0 b2 0 0 0 0 0 6e 0 c1 0 0 0 2c e8 0 0 0 0 0 0 0 0 0 76 0 0 99
+10 b2 0 0 1d 0 a2 e0 0 0 7a 0 0 0 0 63 0 a1 0 0 0 0 0 0 68 fa 0 10 b2 0 0 1d 0 a2 e0 0 0 7a 0 0 0 0 0 27 68 0 0 55 0 a4 0 0 63 0 a1 0 0 0 0 0 0 68 fa 0
+0 0 59 0 4c 0 0 0 0 10 0 0 66 0 0 db 15 0 c4 0 0 0 0 0 82 0 0 0 0 59 0 4c 0 0 0 0 10 0 0 66 0 0 0 0 0 46 11 0 0 b2 6f 0 db 15 0 c4 0 0 0 0 0 e7 0 0
+0 0 0 0 1e 56 31 c8 0 0 b9 a b7 0 0 0 d6 0 0 0 0 0 0 0 0 0 a8 0 0 0 0 1e 56 31 c8 0 0 b9 a b7 0 0 0 0 a 0 0 0 0 0 5 0 0 d6 0 0 0 0 0 0 0 0 0 a8
+4c 0 15 0 0 0 7b 0 5c 12 0 0 0 35 2c 0 ad 0 0 0 0 0 b7 d0 0 0 6a 4c 0 15 0 0 0 7b 0 5c 12 0 0 0 35 2c 0 0 0 0 0 0 0 70 0 e2 0 ad 0 0 0 0 0 b7 d0 0 0 6a
+0 71 0 0 0 0 0 2f 0 6a 0 a7 0 0 0 0 0 0 0 0 0 0 0 45 0 0 0 83 71 0 0 0 0 0 2f 0 6a 0 a7 0 0 0 d9 0 e0 0 0 0 0 0 54 0 0 0 0 0 0 0 0 0 45 0 0 0
+0 0 e5 7c 0 0 0 0 0 0 0 0 0 1f 73 0 0 0 0 f3 0 0 77 0 94 0 0 0 0 e5 7c 0 0 0 0 0 0 0 0 0 1f 73 0 0 83 0 0 0 0 c 0 0 0 0 0 0 f3 0 0 77 0 94 0 43
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 2f 0 8c 0 0 0 0 0 0 0 0 85 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2f 0 0 0 1a 54 0 e3 0 0 0 0 0 0 0 0 0 0 0 0 0 85 0
+0 2c 24 0 0 0 0 0 0 0 86 0 0 0 ad 0 0 49 35 0 0 cc 0 0 0 0 0 0 2c 24 0 0 0 0 0 0 0 86 0 0 0 ad 0 0 0 0 21 0 0 0 0 63 0 0 49 35 b 0 cc 0 0 0 0 0
+36 0 0 0 0 0 0 0 0 0 0 0 86 4d 0 0 0 0 0 61 0 66 0 0 b9 a5 29 36 0 0 0 0 0 0 0 0 0 0 0 86 4d 0 a2 0 6e 0 0 0 0 b0 0 0 0 0 0 0 61 0 66 0 0 b9 a5 29
+62 0 0 da 0 0 0 0 0 5a 0 0 0 0 0 0 0 0 0 78 0 0 4f 0 0 0 0 62 0 0 da 0 0 f9 0 0 5a 0 0 0 0 0 62 0 3d 0 0 0 0 0 0 0 0 0 0 0 78 0 0 4f 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 77 0 0 0 0 0 de 0 bd 0 0 0 0 0 0 0 cc 0 0 0 0 0 0 0 0 0 0 77 0 0 0 0 a1 66 0 0 0 0 47 0 0 a7 0 de 0 bd 0 0 0 0 0 0 0 cc
+0 0 0 0 0 0 25 0 0 0 63 e0 0 0 4c 0 40 0 f b5 7c 0 0 0 0 0 0 0 0 0 0 0 0 25 0 0 0 63 0 0 0 4c 0 48 0 0 4d 0 0 a6 0 51 0 40 a0 f b5 7c 0 0 0 0 0 0
+0 fe 0 40 0 0 0 0 92 0 0 0 0 64 68 0 0 0 56 c1 0 0 6d 0 0 0 0 0 fe 0 40 0 0 0 0 92 0 0 0 0 64 68 0 0 0 0 0 0 0 0 0 1e 0 0 0 56 c1 0 0 6d 0 0 0 0
+f4 0 9e 0 f2 0 5f 0 0 0 0 0 0 ef 0 32 0 9c 0 e0 0 0 ce 0 0 9c 6 f4 0 9e 4c f2 0 5f 0 0 0 0 0 0 ef 0 0 0 0 0 0 0 0 0 0 0 32 0 9c 0 e0 0 0 ce 0 0 9c 6
+0 0 0 db 0 0 0 0 0 0 0 d9 0 0 0 97 0 0 3c 0 0 0 be 0 0 0 f8 0 5d 0 db 0 0 0 0 0 0 0 d9 0 0 0 b5 0 0 0 0 0 0 0 0 d 97 0 0 3c 0 0 0 be 0 0 0 f8
+0 0 35 1c 0 0 0 0 0 c8 9e 0 e2 5 0 0 0 0 0 30 0 0 0 0 0 0 0 0 0 35 1c 0 0 0 0 0 c8 9e 0 e2 0 0 0 0 0 0 0 c7 0 0 d5 0 0 0 0 0 30 0 0 0 0 0 0 0
+0 f9 0 0 0 0 0 0 4 0 ec 0 0 e9 0 0 0 0 2e 0 8d 0 0 80 cf 0 0 0 f9 0 0 0 0 0 0 4 0 ec 0 0 e9 0 0 0 0 0 e7 0 0 0 0 0 0 0 0 2e 0 8d 8e 0 80 cf 0 0
+0 0 a3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5b 0 ec 0 0 0 2a 0 0 0 a3 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 5b 0 ec 0 0 0 2a 0
+0 0 0 0 0 0 0 0 0 0 1f 0 0 0 0 0 0 0 4a 0 35 0 0 0 0 d4 f6 0 0 0 0 0 0 0 0 0 0 1f 0 0 0 0 0 0 16 19 0 0 0 0 0 c8 0 0 0 4a 0 0 0 0 0 0 d4 f6
+0 0 45 0 0 0 df 0 0 2c 7a 0 0 0 0 3f 0 0 2e 6a 0 5c 0 0 14 0 f8 0 0 45 0 0 0 df 0 0 2c 7a 0 0 0 0 df 0 9c 0 0 0 0 15 1d b6 3f 0 0 2e 6a 0 5c 0 0 14 0 f8
+0 8e 0 0 0 0 0 36 0 f0 0 22 95 0 0 0 0 0 0 0 0 e 0 a6 0 0 0 0 8e 0 0 0 0 0 36 0 f0 0 22 95 0 0 0 7a 9d 0 0 0 0 0 0 0 0 0 0 0 0 0 e 0 a6 0 0 0
+0 0 0 0 0 c2 86 0 0 0 0 0 0 0 ea 0 0 0 4 0 0 0 0 0 0 34 dd 0 0 0 0 0 c2 86 0 0 0 0 0 0 0 ea 0 ae 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 34 dd
+0 69 0 0 0 0 0 0 a7 fe 0 0 4d 4f 0 0 0 0 0 15 0 0 0 f0 0 0 42 0 69 0 0 0 0 0 0 a7 fe 0 0 4d 4f 0 0 9b 0 5e 0 0 0 95 0 0 0 0 0 0 15 0 0 0 f0 0 0 42
+0 0 0 0 cd 0 4b 0 89 0 c e4 0 0 0 0 0 0 0 0 0 10 0 0 0 8c 0 0 0 0 0 cd 0 4b 0 89 0 c e4 0 0 0 0 0 80 0 0 0 c9 0 c5 0 0 0 0 0 0 0 10 0 0 0 8c 0
+0 0 0 0 0 0 87 0 0 cc 0 0 67 0 0 0 0 0 0 0 0 67 0 0 0 0 0 0 0 0 0 0 0 87 0 0 cc 0 0 67 0 0 0 0 5f 84 0 0 26 3f d2 0 0 0 0 0 0 0 67 0 0 0 0 0
+0 0 35 0 0 0 4 0 0 0 0 0 fd ca 0 0 db 0 0 c8 1b ce 0 8f 6b 0 e 0 0 35 0 0 0 4 0 0 0 0 0 fd ca 0 83 0 22 0 7f 0 0 22 0 0 0 db 0 0 c8 1b ce 0 8f 6b 4d e
+0 59 0 f2 0 0 7 c9 0 0 0 0 1e 0 0 21 0 0 0 0 0 0 0 0 ff ff 0 0 59 0 f2 0 0 7 c9 0 0 0 0 1e 0 0 0 0 0 0 0 0 0 0 38 a0 21 0 0 0 0 0 0 0 0 ff ff 0
+m_sprite_attribute_table.b[] 256 1
+9d 1 92 6 66 40 20 17 76 40 20 17 66 34 20 17 76 34 20 17 56 40 24 17 86 40 20 17 56 34 24 17 86 34 20 17 f2 f3 29 10 1a e2 20 12 6 ee 20 11 2e d2 20 13 66 24 0 f 76 24 0 f 56 24 4 f
+86 24 0 f 66 58 34 1f 76 58 34 1f 76 4c 34 1f 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0 0 0 1 0
+m_scroll_data_table[] 512 1
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+4b 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+80 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+m_colour_palette[] 768 1
+0 0 0 30 10 0 0 20 26 38 38 0 0 38 38 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 7 1e 1e 1d 16 16 0 0 0 0 38 0 38 0 17 38 20 0 38 0 38 38 38
+38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 0 0 0 0 0 d 1d d 0 13 0 0 0 30 30 38 0 17 38 38 0 0 0 38 38 0 0 38 38 0 0 30 30 38 30 30 38 30 30 38 30 30
+38 30 30 38 0 0 0 0 0 7 1e 0 b 0 10 13 0 0 0 38 0 0 0 17 38 38 38 0 30 30 38 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 7 0 1e 0 16 0 0
+0 0 0 30 10 0 0 0 38 38 38 0 30 30 38 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 0 0 10 0 1b 1b 1d 0 0 0 0 38 38 38 0 0 38 27 0 30 30 38 38
+38 0 20 0 38 0 0 38 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 7 8 24 1d 1e 1e 0 0 0 0 0 38 0 38 0 0 38 0 38 38 0 0 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30
+38 30 30 38 0 0 b 0 0 7 0 9 0 1e 0 1d 0 0 0 27 27 38 0 17 38 38 0 0 38 0 0 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 0 0 5 e 0 1e 1d
+0 0 0 38 0 0 0 38 38 0 17 38 38 0 0 38 38 0 20 0 38 0 0 38 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 0 6 1e 18 16 0 13 0 0 0 38 0 0 0 17 38 30 30 38 3c 3c 0 38
+38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 7 0 9 0 13 13 13 0 0 0 38 0 0 38 38 0 30 30 38 3c 3c 0 38 38 38 30 30 30 29 27 29 30 30 38 30 30 38 30 30
+38 30 30 38 0 0 b 0 0 7 1e 11 0 0 1e 0 0 0 0 30 30 38 0 38 38 38 0 0 3c 3c 0 30 30 38 0 17 38 38 0 0 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 0 1e 19 1b 0 16 13
+0 0 0 0 17 38 0 27 38 0 38 38 38 20 0 39 0 0 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 7 10 0 0 0 d 1d 0 0 0 0 17 38 0 27 38 0 38 38 0 0 38 30
+30 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 0 0 b 0 0 0 10 d d 1e 0 b 0 0 0 0 17 38 0 27 38 0 38 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30 38 30 30
+38 30 30 38 0 0 0 0 0 7 0 b e 0 1e 0 0 0 0 0 17 38 0 27 38 0 38 38 38 0 0 0 0 0 13 13 15 30 30 38 27 27 27 a a a 1b 17 38 1d 1d 1e 0 0 b 0 0 7 10 10 0 1e 1e 1d
+m_base_addr[] 16 4
+2 2 2 2 2 2 2 2 5 5 5 3 5 3 3 3

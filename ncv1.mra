@@ -1,0 +1,29 @@
+<misterromdescription>
+    <name>Namco Classic Collection Vol.1</name>
+    <setname>ncv1</setname>
+    <year>1995</year>
+    <manufacturer>Namco</manufacturer>
+    <rbf>ncv1</rbf>
+    <region>World</region>
+    <platform>Namco ND-1</platform>
+
+    <!--
+      Flat image for the Analogue Pocket core (docs/hardware.md section 6):
+
+        0x000000  0x100000  68000 program, big-endian words as stored
+        0x100000  0x080000  H8/3002 sub program
+        0x180000  0x200000  YGV608 character (pattern) ROM
+        0x380000  0x200000  C352 sample ROM
+        0x580000  total (5.5 MB)
+
+      nc1cg0.10c: MAME up to 0.270 listed CRC 355e7f29; 0.271 onwards lists the
+      redump d4383199. Both are accepted.
+    -->
+    <rom index="0" zip="ncv1.zip" md5="none" type="merged">
+        <part name="nc2main0.14d" crc="4ffc530b"/>
+        <part name="nc2main1.13d" crc="26499a4e"/>
+        <part name="nc1sub.1c"    crc="48ea0de2"/>
+        <part name="nc1cg0.10c"   crc="d4383199|355e7f29"/>
+        <part name="nc1voice.7b"  crc="91c85bd6"/>
+    </rom>
+</misterromdescription>

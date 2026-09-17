@@ -1,0 +1,31 @@
+{
+    "data": {
+        "magic": "APF_VER_1",
+        "data_slots": [
+            {
+                "name": "ROM Set",
+                "id": 0,
+                "required": true,
+                "parameters": "0x8",
+                "filename": "ncv1.rom",
+                "extensions": [
+                    "rom"
+                ],
+                "address": "0x00000000"
+            },
+            {
+                "name": "Settings & Records",
+                "id": 1,
+                "required": false,
+                "parameters": "0x22",
+                "nonvolatile": true,
+                "filename": "ncv1.sav",
+                "extensions": [
+                    "sav"
+                ],
+                "address": "0x20000000",
+                "size_maximum": "0x80"
+            }
+        ]
+    }
+}
