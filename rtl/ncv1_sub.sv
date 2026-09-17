@@ -78,7 +78,12 @@ module ncv1_sub (
 
     // shared RAM
     assign sh_addr  = a[15:1];
-    assign sh_req   = req & sel_sh;
+    // the decode is registered (the address compare into the RAM's write enable was the
+    // tightest per-clock path): the request reaches the RAM a clock later, still inside the
+    // access's first state, and drops with the CPU's request
+    logic sh_sel_r;
+    always_ff @(posedge clk) sh_sel_r <= ~reset & req & sel_sh;
+    assign sh_req   = req & sh_sel_r;
     assign sh_we    = wr ? (word ? 2'b11 : (a[0] ? 2'b01 : 2'b10)) : 2'b00;
     assign sh_wdata = wdata;
 
