@@ -36,6 +36,16 @@ produces `ncv1.rom` (5.5 MB); copy it to `Assets/ncv1/common/` on the SD card.
 Both known dumps of `nc1cg0.10c` are accepted (MAME ≤ 0.270 listed CRC
 355e7f29, later versions d4383199).
 
+## The screen
+
+The ND-1 drives a vertically mounted monitor. The core emits the VDP's native
+288x224 raster and the Pocket's scaler turns it 90 degrees clockwise
+(`rotation: 90` in `video.json`, the same orientation as MAME's ROT90 and as
+the Gaiapolis and Time Pilot cores). **Screen Shape** in the Interact menu
+switches live between the cabinet's 3:4 and square pixels. The aspect values in
+`video.json` describe the raster before rotation, so the 3:4 entry is written
+4:3.
+
 ## Controls
 
 D-pad or stick moves; A = button 1, B = button 2, X/Y = button 3, Select =

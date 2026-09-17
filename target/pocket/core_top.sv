@@ -471,7 +471,10 @@ module core_top
                          savestate_load_ack, savestate_load_busy, savestate_load_ok, savestate_load_err,
                          target_buffer_param_struct, target_buffer_resp_struct, datatable_q, dbg_68k_addr, dbg_gfxbank};
 
-    // aspect: mod_sw0[2:1] = 1 selects the square-pixel scaler mode
+    // Screen shape: mod_sw0[2:1] = 1 selects the square-pixel scaler mode. Both
+    // video.json modes rotate the native 288x224 raster 90 degrees clockwise;
+    // their aspect values describe the raster BEFORE rotation (measured on
+    // hardware by the Time Pilot core), so the 3:4 cabinet shape is written 4:3.
     assign video_preset = (mod_sw0[2:1] == 2'd1) ? 3'd1 : 3'd0;
 
     // ---------------------------------------------------------- diagnostic overlay
