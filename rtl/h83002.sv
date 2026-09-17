@@ -114,8 +114,6 @@ module h83002 (
     logic [15:0] int_q;
     assign int_q = sel_ram ? {ram_qh, ram_ql} : {io_q, io_q};
 
-    // generic storage for registers we only need to read back
-    logic [7:0] regs [256];
     // named state
     logic  [7:0] tstr;
     logic  [7:0] syscr, iscr, ier, isr;
@@ -183,7 +181,6 @@ module h83002 (
     task automatic io_write(input logic [7:0] a, input logic [7:0] d);
         logic [2:0] c; logic [3:0] r;
         c = ch_of(a); r = ch_reg(a);
-        regs[a] <= d;
         case (a)
         8'h60: tstr <= d;
         8'hc5: ddr4 <= d; 8'hc7: dr4 <= d;
@@ -224,7 +221,7 @@ module h83002 (
     function automatic logic [7:0] io_read(input logic [7:0] a);
         logic [2:0] c; logic [3:0] r;
         c = ch_of(a); r = ch_reg(a);
-        io_read = regs[a];
+        io_read = 8'h00;                                       // registers not modelled read 0 (only the ones below are ever read)
         case (a)
         8'h60: io_read = tstr | 8'he0;
         8'h61, 8'h62, 8'h63, 8'h90, 8'h91: io_read = 8'h00;   // TSYR/TMDR/TFCR/TOER/TOCR read 0 in MAME
@@ -237,7 +234,6 @@ module h83002 (
         8'hd2: io_read = 8'hc0 | (dr9 & ddr9) | ~ddr9;
         8'hd3: io_read = 8'h00 | (dra & ddra) | ~ddra;
         8'hd6: io_read = 8'h00 | (drb & ddrb) | ~ddrb;
-        8'hda: io_read = regs[8'hda];                          // P4PCR
         8'he0, 8'he1, 8'he2, 8'he3, 8'he4, 8'he5, 8'he6, 8'he7: io_read = 8'h00;  // ADC data (inputs tied to 0)
         8'he8: io_read = adcsr;
         8'hf2: io_read = syscr;
@@ -246,7 +242,7 @@ module h83002 (
         8'hf6: io_read = isr;
         8'hf8: io_read = icr[15:8];
         8'hf9: io_read = icr[7:0];
-        8'had: io_read = regs[8'had] | 8'h80;                  // RTMCSR: CMF always set
+        8'had: io_read = 8'h80;                                // RTMCSR: CMF always set
         default: ;
         endcase
         if (c != 3'd7) begin
@@ -380,5 +376,5 @@ module h83002 (
 
     // registered read data
     always_ff @(posedge clk) io_q <= io_read(bus_addr[7:0]);
-    wire _unused = &{1'b0, io_rd, regs[0]};
+    wire _unused = &{1'b0, io_rd};
 endmodule

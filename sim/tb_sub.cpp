@@ -96,7 +96,6 @@ int main(int argc, char **argv) {
     r->ncv1_sub__DOT__mcu__DOT__cpu__DOT__state = 3;
     for (int i = 0; i < 256; i++) { r->ncv1_sub__DOT__mcu__DOT__ram_hi[i] = iram[i] >> 8; r->ncv1_sub__DOT__mcu__DOT__ram_lo[i] = iram[i] & 0xff; }
     auto IO = [&](int a) { return io[a - 0x20]; };
-    for (int a = 0x20; a < 0x100; a++) r->ncv1_sub__DOT__mcu__DOT__regs[a] = IO(a);
     r->ncv1_sub__DOT__mcu__DOT__tstr = IO(0x60) & 0x1f;
     r->ncv1_sub__DOT__mcu__DOT__syscr = IO(0xf2); r->ncv1_sub__DOT__mcu__DOT__iscr = IO(0xf4);
     r->ncv1_sub__DOT__mcu__DOT__ier = IO(0xf5); r->ncv1_sub__DOT__mcu__DOT__isr = IO(0xf6);
