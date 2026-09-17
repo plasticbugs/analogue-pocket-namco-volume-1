@@ -59,8 +59,6 @@ module h8300h (
     logic  [2:0] nw;                 // words of the current instruction fetched
     logic [31:0] tmp1, tmp2;
     logic [23:0] ea;
-    logic [15:0] mdata;              // last read data
-    logic        bus_done;
     logic  [4:0] wait_n;             // internal states still to spend
     logic  [4:0] step;
     logic        noirq;              // the next boundary must not take an interrupt
@@ -141,7 +139,14 @@ module h8300h (
     logic        d_bitreg;      // bit number from register d_rs (r8)
     logic  [4:0] d_extra;       // internal states (already n+1)
 
-    wire [15:0] ir0 = ir[0], ir1 = ir[1], ir2 = ir[2], ir3 = ir[3], ir4 = ir[4];
+    logic [15:0] ir_eff [5];
+    logic        bus_done;
+    logic [15:0] mdata;
+    always_comb begin
+        for (int i = 0; i < 5; i++)
+            ir_eff[i] = (state == S_BUS && ret_state == S_FETCHW && nw == 3'(i)) ? mdata : ir[i];
+    end
+    wire [15:0] ir0 = ir_eff[0], ir1 = ir_eff[1], ir2 = ir_eff[2], ir3 = ir_eff[3], ir4 = ir_eff[4];
     wire [7:0]  b0 = ir0[15:8], b1 = ir0[7:0];
 
     // word count needed, from the first word (and the second for prefixes)
@@ -626,22 +631,25 @@ module h8300h (
         endcase
     endfunction
 
-    // ------------------------------------------------------------ bus completion tracking
-    always_ff @(posedge clk) begin
-        if (reset) begin bus_done <= 1'b0; mdata <= 16'd0; end
-        else begin
-            if ((bus_rd || bus_wr) && bus_ack) begin bus_done <= 1'b1; mdata <= bus_rdata; end
-            if (cen && state != S_BUS) bus_done <= 1'b0;
-        end
-    end
+    // ------------------------------------------------------------ bus requests
+    // A request is issued the clock after the state that decides it (so the bus
+    // sees a one-clock gap between back-to-back accesses, which the one-ack-per-
+    // request memories need), completes at the second state after issue at the
+    // earliest, and its continuation runs in that completing state -- so every
+    // access costs exactly 2 states when the memory answers in time, as in MAME.
+    logic        bus_pend, nreq_rd, nreq_wr, nreq_word;
+    logic [23:0] nreq_addr;
+    logic [15:0] nreq_wdata;
+    logic        bus_cnt;                     // a state has passed since issue
 
-    // a memory access request, launched from the sequencer; completes in S_BUS
     task automatic start_read(input logic [23:0] a, input logic word, input state_t rs, input logic [4:0] rstep);
-        bus_addr <= a; bus_word <= word; bus_rd <= 1'b1; bus_wr <= 1'b0;
+        nreq_addr <= a; nreq_word <= word; nreq_rd <= 1'b1; nreq_wr <= 1'b0; bus_pend <= 1'b1;
+        bus_rd <= 1'b0; bus_wr <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0;
         ret_state <= rs; ret_step <= rstep; state <= S_BUS;
     endtask
     task automatic start_write(input logic [23:0] a, input logic word, input logic [15:0] d, input state_t rs, input logic [4:0] rstep);
-        bus_addr <= a; bus_word <= word; bus_wdata <= word ? d : {d[7:0], d[7:0]}; bus_rd <= 1'b0; bus_wr <= 1'b1;
+        nreq_addr <= a; nreq_word <= word; nreq_wdata <= word ? d : {d[7:0], d[7:0]}; nreq_rd <= 1'b0; nreq_wr <= 1'b1; bus_pend <= 1'b1;
+        bus_rd <= 1'b0; bus_wr <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0;
         ret_state <= rs; ret_step <= rstep; state <= S_BUS;
     endtask
     task automatic go_wait(input logic [4:0] n, input state_t rs, input logic [4:0] rstep);
@@ -670,21 +678,281 @@ module h8300h (
     wire [31:0] store_val = rsz(d_sz, d_rd);
     wire        ea_word   = (d_sz != 2'd0);
 
+    // ------------------------------------------------------------ instruction boundary
+    // p = the address of the next instruction (usually pc; a jump passes its target)
+    task automatic finish(input logic [23:0] p);
+        if (irq_vector != 8'd0 && !noirq) begin
+            cur_vec <= irq_vector; irq_ack <= 1'b1; irq_ack_vector <= irq_vector;
+            dbg_irq <= 1'b1; dbg_npc <= p;
+            tmp2 <= {8'd0, p};
+            pc <= p;
+            go_wait(5'd2, S_IRQ, 5'd1);           // internal(1)
+        end else begin
+            noirq <= 1'b0;
+            dbg_istart <= 1'b1; dbg_pc <= p;
+            nw <= 3'd0;
+            start_read(p, 1'b1, S_FETCHW, 5'd0);
+            pc <= p + 24'd2;
+        end
+    endtask
+
+    // ------------------------------------------------------------ body start (all words fetched)
+    task automatic begin_body();
+        ea <= ea_calc;
+        if (d_ea == EA_INC || d_ea == EA_DEC)
+            er[d_rea] <= (d_ea == EA_INC) ? er[d_rea] + ((d_sz == 2'd0) ? 32'd1 : (d_sz == 2'd1) ? 32'd2 : 32'd4) : {8'd0, ea_calc};
+        case (d_grp)
+        G_ALU: begin
+            if (d_op == OP_DIVXU || d_op == OP_DIVXS) begin
+                logic [31:0] n; logic [15:0] dd; logic nneg, dneg;
+                n = (d_sz == 2'd0) ? {16'd0, r16(d_rd)} : er[d_rd[2:0]];
+                dd = (d_sz == 2'd0) ? {8'd0, r8(d_rs)} : r16(d_rs);
+                if (d_op == OP_DIVXS) begin
+                    if (d_sz == 2'd0) begin nneg = n[15]; n = nneg ? (32'd0 - {{16{n[15]}}, n[15:0]}) : n; end
+                    else begin nneg = n[31]; n = nneg ? (32'd0 - n) : n; end
+                    if (d_sz == 2'd0) begin dneg = dd[7]; dd = dneg ? (16'd0 - {{8{dd[7]}}, dd[7:0]}) : dd; end
+                    else begin dneg = dd[15]; dd = dneg ? (16'd0 - dd) : dd; end
+                end else begin nneg = 1'b0; dneg = 1'b0; end
+                div_signed <= (d_op == OP_DIVXS);
+                div_n_abs <= n; div_d_abs <= dd; div_rem <= 32'd0; div_q <= 32'd0;
+                div_cnt <= 6'd32; div_busy <= 1'b1;
+                div_neg_q <= nneg ^ dneg; div_neg_r <= nneg;
+                div_wide <= (d_sz == 2'd1);
+                tmp1 <= {16'd0, dd};
+                go_wait(d_extra, S_EXEC, 5'd1);
+            end else if (d_extra != 5'd0) begin
+                // multiplies: result now, then the internal states
+                ccr <= alu_ccr; wsz((d_sz == 2'd0) ? 2'd1 : 2'd2, d_rd, alu_res);
+                go_wait(d_extra, S_FETCH, 5'd0);
+            end else begin
+                ccr <= alu_ccr;
+                if (d_op == OP_LDC || d_op == OP_ANDC || d_op == OP_ORC || d_op == OP_XORC) noirq <= 1'b1;
+                if (d_op != OP_CMP && d_op != OP_BTST && d_op != OP_BOR && d_op != OP_BIOR &&
+                    d_op != OP_BXOR && d_op != OP_BIXOR && d_op != OP_BAND && d_op != OP_BIAND &&
+                    d_op != OP_BLD && d_op != OP_BILD && d_op != OP_LDC && d_op != OP_ANDC &&
+                    d_op != OP_ORC && d_op != OP_XORC)
+                    wsz(d_sz, d_rd, alu_res);
+                finish(pc);
+            end
+        end
+        G_NOP, G_ILL: finish(pc);
+        G_SLEEP: begin dbg_sleep <= 1'b1; state <= S_SLEEP; end
+        G_BCC: begin
+            // MAME fetches from the target regardless of the condition (2 states)
+            if (cond(d_cc, ccr)) pc <= pc + d_ival[23:0];
+            go_wait(5'd2, S_FETCH, 5'd0);
+        end
+        default: begin
+            if (d_extra != 5'd0) go_wait(d_extra, S_EXEC, 5'd0);
+            else exec_step(5'd0, ea_calc);
+        end
+        endcase
+    endtask
+
+    // ------------------------------------------------------------ instruction steps
+    task automatic exec_step(input logic [4:0] st, input logic [23:0] ea_in);
+        case (d_grp)
+        // ---- DIVXU / DIVXS write-back after the internal states
+        G_ALU: begin
+            if (tmp1[15:0] == 16'd0) begin
+                ccr[F_Z] <= 1'b1;
+                ccr[F_N] <= div_signed ? 1'b0 : tmp1[7];
+            end else begin
+                logic [15:0] q, rr;
+                q  = div_neg_q ? (16'd0 - div_q[15:0]) : div_q[15:0];
+                rr = div_neg_r ? (16'd0 - div_rem[15:0]) : div_rem[15:0];
+                ccr[F_Z] <= 1'b0;
+                // MAME: DIVXU sets N from bit 7 of the divisor (both sizes); DIVXS from the quotient sign
+                ccr[F_N] <= div_signed ? (div_neg_q && div_q != 32'd0) : tmp1[7];
+                if (div_wide) er[d_rd[2:0]] <= {rr, q};
+                else w16(d_rd, {rr[7:0], q[7:0]});
+            end
+            finish(pc);
+        end
+        // ---- MOV memory -> register
+        G_LOAD: case (st)
+            5'd0: start_read(ea_in, ea_word, S_EXEC, 5'd1);
+            5'd1: begin
+                if (d_sz == 2'd2) begin tmp1 <= {mdata, 16'd0}; start_read(ea_in + 24'd2, 1'b1, S_EXEC, 5'd2); end
+                else begin
+                    logic [31:0] v;
+                    v = (d_sz == 2'd0) ? {24'd0, lane8(ea_in, mdata)} : {16'd0, mdata};
+                    wsz(d_sz, d_rd, v);
+                    ccr[F_N] <= v[(d_sz == 2'd0) ? 7 : 15]; ccr[F_Z] <= (v == 0); ccr[F_V] <= 1'b0;
+                    finish(pc);
+                end
+            end
+            default: begin
+                logic [31:0] v;
+                v = {tmp1[31:16], mdata};
+                er[d_rd[2:0]] <= v;
+                ccr[F_N] <= v[31]; ccr[F_Z] <= (v == 0); ccr[F_V] <= 1'b0;
+                finish(pc);
+            end
+        endcase
+        // ---- MOV register -> memory
+        G_STORE: case (st)
+            5'd0: begin
+                ccr[F_N] <= store_val[(d_sz == 2'd0) ? 7 : (d_sz == 2'd1) ? 15 : 31];
+                ccr[F_Z] <= (store_val == 0); ccr[F_V] <= 1'b0;
+                if (d_sz == 2'd2) start_write(ea_in, 1'b1, store_val[31:16], S_EXEC, 5'd1);
+                else start_write(ea_in, ea_word, store_val[15:0], S_FETCH, 5'd0);
+            end
+            default: start_write(ea_in + 24'd2, 1'b1, store_val[15:0], S_FETCH, 5'd0);
+        endcase
+        // ---- bit operations on memory (byte read, optional write back)
+        G_BITMEM: case (st)
+            5'd0: start_read(ea_in, 1'b0, S_EXEC, 5'd1);
+            default: begin
+                ccr <= alu_ccr;
+                if (bit_writes(d_op)) start_write(ea_in, 1'b0, {8'd0, alu_res[7:0]}, S_FETCH, 5'd0);
+                else finish(pc);
+            end
+        endcase
+        // ---- LDC.W @ea, CCR  /  STC.W CCR, @ea
+        G_LDCM: case (st)
+            5'd0: start_read(ea_in, 1'b1, S_EXEC, 5'd1);
+            default: begin ccr <= mdata[15:8]; noirq <= 1'b1; finish(pc); end
+        endcase
+        G_STCM: start_write(ea_in, 1'b1, {ccr, ccr}, S_FETCH, 5'd0);
+        // ---- JMP
+        G_JMP: case (st)
+            5'd0: begin
+                case (d_ea)
+                EA_IND:   begin pc <= ea_in; go_wait(5'd2, S_FETCH, 5'd0); end   // dummy fetch
+                EA_ABS24: finish(ea_in);                                         // internal states already spent
+                default:  go_wait(5'd2, S_EXEC, 5'd1);                           // @@aa:8: dummy fetch first
+                endcase
+            end
+            5'd1: start_read(ea_in, 1'b1, S_EXEC, 5'd2);
+            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea_in + 24'd2, 1'b1, S_EXEC, 5'd3); end
+            default: begin pc <= {tmp1[7:0], mdata}; go_wait(5'd2, S_FETCH, 5'd0); end
+        endcase
+        // ---- JSR / BSR: (dummy or target prefetch), push the return address high word then low, then run
+        G_JSR, G_BSR: case (st)
+            5'd0: begin
+                tmp2 <= {8'd0, pc};      // return address
+                case (d_grp == G_BSR ? EA_NONE : d_ea)
+                EA_IND:   begin tmp1 <= {8'd0, ea_in}; go_wait(5'd2, S_EXEC, 5'd3); end          // fetch_noinc dummy
+                EA_ABS24: begin pc <= ea_in; go_wait(5'd2, S_EXEC, 5'd4); end                    // internal spent; prefetch at target
+                EA_IND8:  go_wait(5'd2, S_EXEC, 5'd1);
+                default:  begin // BSR: target = pc + disp
+                    if (d_extra == 5'd0) begin tmp1 <= {8'd0, pc + d_ival[23:0]}; go_wait(5'd2, S_EXEC, 5'd3); end
+                    else begin pc <= pc + d_ival[23:0]; go_wait(5'd2, S_EXEC, 5'd4); end
+                end
+                endcase
+            end
+            5'd1: start_read(ea_in, 1'b1, S_EXEC, 5'd2);
+            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea_in + 24'd2, 1'b1, S_EXEC, 5'd6); end
+            5'd6: begin pc <= {tmp1[7:0], mdata}; go_wait(5'd2, S_EXEC, 5'd4); end
+            5'd3: begin pc <= tmp1[23:0]; go_wait(5'd2, S_EXEC, 5'd4); end      // prefetch at the target
+            5'd4: begin er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, tmp2[23:16]}, S_EXEC, 5'd5); end
+            default: start_write(er[7][23:0] + 24'd2, 1'b1, tmp2[15:0], S_FETCH, 5'd0);
+        endcase
+        // ---- RTS: dummy fetch, pop PC (high word first), internal, prefetch
+        G_RTS: case (st)
+            5'd0: go_wait(5'd2, S_EXEC, 5'd1);
+            5'd1: start_read(er[7][23:0], 1'b1, S_EXEC, 5'd2);
+            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(er[7][23:0] + 24'd2, 1'b1, S_EXEC, 5'd3); end
+            default: begin pc <= {tmp1[7:0], mdata}; er[7] <= er[7] + 32'd4; go_wait(5'd2, S_FETCH, 5'd0); end
+        endcase
+        // ---- RTE: dummy fetch, pop CCR:PCH then PCL, internal, prefetch
+        G_RTE: case (st)
+            5'd0: go_wait(5'd2, S_EXEC, 5'd1);
+            5'd1: start_read(er[7][23:0], 1'b1, S_EXEC, 5'd2);
+            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(er[7][23:0] + 24'd2, 1'b1, S_EXEC, 5'd3); end
+            default: begin ccr <= tmp1[15:8]; pc <= {tmp1[7:0], mdata}; er[7] <= er[7] + 32'd4; go_wait(5'd2, S_FETCH, 5'd0); end
+        endcase
+        // ---- TRAPA #n: like an interrupt with vector 8+n
+        G_TRAPA: begin
+            cur_vec <= 8'd8 + {6'd0, d_ival[1:0]};
+            tmp2 <= {8'd0, pc};
+            go_wait(5'd2, S_IRQ, 5'd1);
+        end
+        // ---- EEPMOV: copy R4L/R4 bytes from @ER5 to @ER6
+        G_EEPMOV: case (st)
+            5'd0: begin
+                if ((d_sz == 2'd0 && er[4][7:0] == 8'd0) || (d_sz == 2'd1 && er[4][15:0] == 16'd0)) finish(pc);
+                else start_read(er[5][23:0], 1'b0, S_EXEC, 5'd1);
+            end
+            5'd1: begin
+                start_write(er[6][23:0], 1'b0, {8'd0, lane8(er[5][23:0], mdata)}, S_EXEC, 5'd0);
+                er[5] <= er[5] + 32'd1; er[6] <= er[6] + 32'd1;
+                if (d_sz == 2'd0) er[4][7:0] <= er[4][7:0] - 8'd1; else er[4][15:0] <= er[4][15:0] - 16'd1;
+            end
+            default: finish(pc);
+        endcase
+        default: finish(pc);
+        endcase
+    endtask
+
+    // ------------------------------------------------------------ interrupt / trap entry
+    // (internal(1) already spent) push NPC low; push CCR:NPC high; read vector; internal(1); prefetch
+    task automatic irq_step(input logic [4:0] st);
+        case (st)
+        5'd1: begin er[7] <= er[7] - 32'd2; start_write(er[7][23:0] - 24'd2, 1'b1, tmp2[15:0], S_IRQ, 5'd2); end
+        5'd2: begin er[7] <= er[7] - 32'd2; start_write(er[7][23:0] - 24'd2, 1'b1, {ccr, tmp2[23:16]}, S_IRQ, 5'd3); end
+        5'd3: start_read({14'd0, cur_vec, 2'b00}, 1'b1, S_IRQ, 5'd4);
+        5'd4: begin tmp1 <= {16'd0, mdata}; start_read({14'd0, cur_vec, 2'b10}, 1'b1, S_IRQ, 5'd5); end
+        5'd5: begin
+            pc <= {tmp1[7:0], mdata};
+            ccr[F_I] <= 1'b1;        // SYSCR UE=1 (reset value): only I is set
+            noirq <= 1'b1;
+            go_wait(5'd2, S_FETCH, 5'd0);
+        end
+        default: state <= S_FETCH;
+        endcase
+    endtask
+
+    // ------------------------------------------------------------ fetched word arrived
+    task automatic fetch_word();
+        ir[nw] <= mdata;
+        nw <= nw + 3'd1;
+        if (nw + 3'd1 < d_words) begin       // d_words already sees this word (ir_eff)
+            start_read(pc, 1'b1, S_FETCHW, 5'd0);
+            pc <= pc + 24'd2;
+        end else begin
+            begin_body();
+        end
+    endtask
+
+    // continuation after a bus access or an internal wait
+    task automatic dispatch(input state_t rs, input logic [4:0] rstep);
+        case (rs)
+        S_FETCH:  finish(pc);
+        S_FETCHW: fetch_word();
+        S_EXEC:   exec_step(rstep, ea);
+        S_IRQ:    irq_step(rstep);
+        S_RESET1: begin tmp1 <= {16'd0, mdata}; start_read(24'd2, 1'b1, S_RESET2, 5'd0); end
+        S_RESET2: begin pc <= {tmp1[7:0], mdata}; noirq <= 1'b1; state <= S_FETCH; end
+        default:  state <= S_FETCH;
+        endcase
+    endtask
+
     // ------------------------------------------------------------ main sequencer
     always_ff @(posedge clk) begin
         dbg_istart <= 1'b0; dbg_irq <= 1'b0; irq_ack <= 1'b0;
         if (reset) begin
             state <= S_RESET0; step <= 5'd0; nw <= 3'd0; noirq <= 1'b0;
             bus_rd <= 1'b0; bus_wr <= 1'b0; bus_addr <= 24'd0; bus_word <= 1'b0; bus_wdata <= 16'd0;
-            pc <= 24'd0; ccr <= 8'h80; div_busy <= 1'b0; dbg_sleep <= 1'b0;
+            bus_pend <= 1'b0; bus_done <= 1'b0; bus_cnt <= 1'b0; mdata <= 16'd0;
+            nreq_rd <= 1'b0; nreq_wr <= 1'b0; nreq_word <= 1'b0; nreq_addr <= 24'd0; nreq_wdata <= 16'd0;
+            pc <= 24'd0; ccr <= 8'h80; div_busy <= 1'b0; dbg_sleep <= 1'b0; wait_n <= 5'd0;
+            ret_state <= S_FETCH; ret_step <= 5'd0; cur_vec <= 8'd0; ea <= 24'd0; tmp1 <= 32'd0; tmp2 <= 32'd0;
             for (int i = 0; i < 8; i++) er[i] <= 32'd0;
             for (int i = 0; i < 5; i++) ir[i] <= 16'd0;
         end else begin
+            // ---- bus: issue the pending request, track its acknowledge
+            if (bus_pend) begin
+                bus_addr <= nreq_addr; bus_word <= nreq_word; bus_wdata <= nreq_wdata;
+                bus_rd <= nreq_rd; bus_wr <= nreq_wr; bus_pend <= 1'b0;
+            end
+            if ((bus_rd || bus_wr) && bus_ack) begin bus_done <= 1'b1; mdata <= bus_rdata; bus_rd <= 1'b0; bus_wr <= 1'b0; end
+
             // ---- divider runs at clk rate while the instruction spends its internal states
             if (div_busy) begin
                 if (div_cnt == 6'd0) div_busy <= 1'b0;
                 else begin
-                    // restoring division, one quotient bit per clock (MSB first)
                     logic [32:0] t;
                     t = {div_rem[31:0], div_n_abs[31]} - {17'd0, div_d_abs};
                     div_n_abs <= {div_n_abs[30:0], 1'b0};
@@ -694,279 +962,22 @@ module h8300h (
                 end
             end
 
-            if (state == S_BUS) begin
-                // the request stays on the bus until acknowledged
-                if (bus_done && cen) begin
-                    bus_rd <= 1'b0; bus_wr <= 1'b0;
-                    state <= ret_state; step <= ret_step;
-                end
-            end else if (cen) begin
+            if (cen) begin
                 case (state)
-                // ---------------------------------------------- reset: PC from vector 0
-                S_RESET0: begin ccr <= ccr | 8'h80; start_read(24'd0, 1'b1, S_RESET1, 5'd0); end
-                S_RESET1: begin tmp1 <= {16'd0, mdata}; start_read(24'd2, 1'b1, S_RESET2, 5'd0); end
-                S_RESET2: begin pc <= {tmp1[7:0], mdata}; noirq <= 1'b1; state <= S_FETCH; end
-
-                // ---------------------------------------------- instruction boundary
-                S_FETCH: begin
-                    if (irq_vector != 8'd0 && !noirq) begin
-                        cur_vec <= irq_vector; irq_ack <= 1'b1; irq_ack_vector <= irq_vector;
-                        dbg_irq <= 1'b1; dbg_npc <= pc;
-                        tmp2 <= {8'd0, pc};
-                        step <= 5'd0; state <= S_IRQ;
-                    end else begin
-                        noirq <= 1'b0;
-                        dbg_istart <= 1'b1; dbg_pc <= pc;
-                        nw <= 3'd0;
-                        start_read(pc, 1'b1, S_FETCHW, 5'd0);
-                        pc <= pc + 24'd2;
-                    end
+                S_BUS: begin
+                    if (bus_done && bus_cnt) dispatch(ret_state, ret_step);
+                    else bus_cnt <= 1'b1;
                 end
-                S_FETCHW: begin
-                    // a word arrived
-                    ir[nw] <= mdata;
-                    nw <= nw + 3'd1;
-                    // d_words is valid once ir[0] (and ir[1] for prefixes) are in; compare with what
-                    // is known after this word is stored -- evaluated next state
-                    state <= S_EXEC; step <= 5'd31;   // 31 = "decide whether more words are needed"
-                end
-
-                // ---------------------------------------------- execute
-                S_EXEC: begin
-                    if (step == 5'd31) begin
-                        if (nw < d_words) begin
-                            start_read(pc, 1'b1, S_FETCHW, 5'd0);
-                            pc <= pc + 24'd2;
-                        end else begin
-                            step <= 5'd0;
-                            // instruction body starts on the next state; groups that need nothing
-                            // more than the ALU finish right here to keep the state count
-                            case (d_grp)
-                            G_ALU: begin
-                                if (d_op == OP_DIVXU || d_op == OP_DIVXS) begin
-                                    // start the divider, spend the internal states, then write back
-                                    logic [31:0] n; logic [15:0] dd; logic nneg, dneg;
-                                    n = (d_sz == 2'd0) ? {16'd0, r16(d_rd)} : er[d_rd[2:0]];
-                                    dd = (d_sz == 2'd0) ? {8'd0, r8(d_rs)} : r16(d_rs);
-                                    if (d_op == OP_DIVXS) begin
-                                        if (d_sz == 2'd0) begin nneg = n[15]; n = nneg ? (32'd0 - {{16{n[15]}}, n[15:0]}) : n; end
-                                        else begin nneg = n[31]; n = nneg ? (32'd0 - n) : n; end
-                                        if (d_sz == 2'd0) begin dneg = dd[7]; dd = dneg ? (16'd0 - {{8{dd[7]}}, dd[7:0]}) : dd; end
-                                        else begin dneg = dd[15]; dd = dneg ? (16'd0 - dd) : dd; end
-                                    end else begin nneg = 1'b0; dneg = 1'b0; end
-                                    div_signed <= (d_op == OP_DIVXS);
-                                    div_n_abs <= n; div_d_abs <= dd; div_rem <= 32'd0; div_q <= 32'd0;
-                                    div_cnt <= 6'd32; div_busy <= 1'b1;
-                                    div_neg_q <= nneg ^ dneg; div_neg_r <= nneg;
-                                    div_wide <= (d_sz == 2'd1);
-                                    tmp1 <= {16'd0, dd};
-                                    go_wait(d_extra, S_EXEC, 5'd1);
-                                end else if (d_extra != 5'd0) begin
-                                    // multiplies: result now, then the internal states
-                                    ccr <= alu_ccr; wsz((d_sz == 2'd0) ? 2'd1 : 2'd2, d_rd, alu_res);
-                                    go_wait(d_extra, S_FETCH, 5'd0);
-                                end else begin
-                                    ccr <= alu_ccr;
-                                    if (d_op == OP_LDC || d_op == OP_ANDC || d_op == OP_ORC || d_op == OP_XORC) noirq <= 1'b1;
-                                    if (d_op != OP_CMP && d_op != OP_BTST && d_op != OP_BOR && d_op != OP_BIOR &&
-                                        d_op != OP_BXOR && d_op != OP_BIXOR && d_op != OP_BAND && d_op != OP_BIAND &&
-                                        d_op != OP_BLD && d_op != OP_BILD && d_op != OP_LDC && d_op != OP_ANDC &&
-                                        d_op != OP_ORC && d_op != OP_XORC)
-                                        wsz(d_sz, d_rd, alu_res);
-                                    state <= S_FETCH;
-                                end
-                            end
-                            G_NOP: state <= S_FETCH;
-                            G_ILL: state <= S_FETCH;   // MAME halts; we skip the word
-                            G_SLEEP: begin dbg_sleep <= 1'b1; state <= S_SLEEP; end
-                            G_BCC: begin
-                                // MAME fetches from the target regardless of the condition (2 states)
-                                if (cond(d_cc, ccr)) pc <= pc + d_ival[23:0];
-                                go_wait(5'd2, S_FETCH, 5'd0);
-                            end
-                            G_LOAD, G_STORE, G_BITMEM, G_LDCM, G_STCM, G_JMP, G_JSR, G_BSR, G_RTS, G_RTE,
-                            G_TRAPA, G_EEPMOV: begin
-                                ea <= ea_calc;
-                                if (d_ea == EA_INC || d_ea == EA_DEC) begin
-                                    er[d_rea] <= (d_ea == EA_INC) ? er[d_rea] + ((d_sz == 2'd0) ? 32'd1 : (d_sz == 2'd1) ? 32'd2 : 32'd4)
-                                                                  : {8'd0, ea_calc};
-                                end
-                                if (d_extra != 5'd0) go_wait(d_extra, S_EXEC, 5'd0);
-                                else state <= S_EXEC;
-                            end
-                            default: state <= S_FETCH;
-                            endcase
-                        end
-                    end else begin
-                        case (d_grp)
-                        // ---- DIVXU / DIVXS write-back after the internal states
-                        G_ALU: begin
-                            // step 1: divider done (32 clocks < the internal states)
-                            if (tmp1[15:0] == 16'd0) begin
-                                // divide by zero: MAME sets Z, N from the divisor, no result
-                                ccr[F_Z] <= 1'b1;
-                                ccr[F_N] <= div_signed ? 1'b0 : tmp1[7];
-                            end else begin
-                                logic [15:0] q, rr;
-                                q  = div_neg_q ? (16'd0 - div_q[15:0]) : div_q[15:0];
-                                rr = div_neg_r ? (16'd0 - div_rem[15:0]) : div_rem[15:0];
-                                ccr[F_Z] <= 1'b0;
-                                // MAME: DIVXU sets N from bit 7 of the divisor (both sizes); DIVXS from the quotient sign
-                                ccr[F_N] <= div_signed ? (div_neg_q && div_q != 32'd0) : tmp1[7];
-                                if (div_wide) er[d_rd[2:0]] <= {rr, q};
-                                else w16(d_rd, {rr[7:0], q[7:0]});
-                            end
-                            state <= S_FETCH;
-                        end
-                        // ---- MOV memory -> register
-                        G_LOAD: case (step)
-                            5'd0: start_read(ea, ea_word, S_EXEC, 5'd1);
-                            5'd1: begin
-                                if (d_sz == 2'd2) begin tmp1 <= {mdata, 16'd0}; start_read(ea + 24'd2, 1'b1, S_EXEC, 5'd2); end
-                                else begin
-                                    logic [31:0] v;
-                                    v = (d_sz == 2'd0) ? {24'd0, lane8(ea, mdata)} : {16'd0, mdata};
-                                    wsz(d_sz, d_rd, v);
-                                    ccr[F_N] <= v[(d_sz == 2'd0) ? 7 : 15]; ccr[F_Z] <= (v == 0); ccr[F_V] <= 1'b0;
-                                    state <= S_FETCH;
-                                end
-                            end
-                            default: begin
-                                logic [31:0] v;
-                                v = {tmp1[31:16], mdata};
-                                er[d_rd[2:0]] <= v;
-                                ccr[F_N] <= v[31]; ccr[F_Z] <= (v == 0); ccr[F_V] <= 1'b0;
-                                state <= S_FETCH;
-                            end
-                        endcase
-                        // ---- MOV register -> memory
-                        G_STORE: case (step)
-                            5'd0: begin
-                                ccr[F_N] <= store_val[(d_sz == 2'd0) ? 7 : (d_sz == 2'd1) ? 15 : 31];
-                                ccr[F_Z] <= (store_val == 0); ccr[F_V] <= 1'b0;
-                                if (d_sz == 2'd2) start_write(ea, 1'b1, store_val[31:16], S_EXEC, 5'd1);
-                                else start_write(ea, ea_word, store_val[15:0], S_FETCH, 5'd0);
-                            end
-                            default: start_write(ea + 24'd2, 1'b1, store_val[15:0], S_FETCH, 5'd0);
-                        endcase
-                        // ---- bit operations on memory (byte read, optional write back)
-                        G_BITMEM: case (step)
-                            5'd0: start_read(ea, 1'b0, S_EXEC, 5'd1);
-                            default: begin
-                                ccr <= alu_ccr;
-                                if (bit_writes(d_op)) start_write(ea, 1'b0, {8'd0, alu_res[7:0]}, S_FETCH, 5'd0);
-                                else state <= S_FETCH;
-                            end
-                        endcase
-                        // ---- LDC.W @ea, CCR  /  STC.W CCR, @ea
-                        G_LDCM: case (step)
-                            5'd0: start_read(ea, 1'b1, S_EXEC, 5'd1);
-                            default: begin ccr <= mdata[15:8]; noirq <= 1'b1; state <= S_FETCH; end
-                        endcase
-                        G_STCM: start_write(ea, 1'b1, {ccr, ccr}, S_FETCH, 5'd0);
-                        // ---- JMP
-                        G_JMP: case (step)
-                            5'd0: begin
-                                case (d_ea)
-                                EA_IND:   begin pc <= ea; go_wait(5'd2, S_FETCH, 5'd0); end   // dummy fetch
-                                EA_ABS24: begin pc <= ea; state <= S_FETCH; end               // internal states already spent
-                                default:  begin go_wait(5'd2, S_EXEC, 5'd1); end               // @@aa:8: dummy fetch first
-                                endcase
-                            end
-                            5'd1: start_read(ea, 1'b1, S_EXEC, 5'd2);
-                            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea + 24'd2, 1'b1, S_EXEC, 5'd3); end
-                            default: begin pc <= {tmp1[7:0], mdata}; go_wait(5'd2, S_FETCH, 5'd0); end
-                        endcase
-                        // ---- JSR / BSR: push the return address (high word first), then jump
-                        G_JSR, G_BSR: case (step)
-                            5'd0: begin
-                                tmp2 <= {8'd0, pc};      // return address
-                                case (d_grp == G_BSR ? EA_NONE : d_ea)
-                                EA_IND:   begin tmp1 <= {8'd0, ea}; go_wait(5'd2, S_EXEC, 5'd3); end   // fetch_noinc dummy
-                                EA_ABS24: begin tmp1 <= {8'd0, ea}; step <= 5'd3; end
-                                EA_IND8:  begin go_wait(5'd2, S_EXEC, 5'd1); end
-                                default:  begin // BSR: target = pc + disp
-                                    tmp1 <= {8'd0, pc + d_ival[23:0]};
-                                    if (d_extra == 5'd0) go_wait(5'd2, S_EXEC, 5'd3); else step <= 5'd3;
-                                end
-                                endcase
-                            end
-                            5'd1: start_read(ea, 1'b1, S_EXEC, 5'd2);
-                            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(ea + 24'd2, 1'b1, S_EXEC, 5'd6); end
-                            5'd6: begin tmp1 <= {8'd0, tmp1[7:0], mdata}; step <= 5'd3; end
-                            5'd3: begin // prefetch at the target (2 states), then push
-                                pc <= tmp1[23:0];
-                                go_wait(5'd2, S_EXEC, 5'd4);
-                            end
-                            5'd4: begin er[7] <= er[7] - 32'd4; start_write(er[7][23:0] - 24'd4, 1'b1, {8'd0, tmp2[23:16]}, S_EXEC, 5'd5); end
-                            default: start_write(er[7][23:0] + 24'd2, 1'b1, tmp2[15:0], S_FETCH, 5'd0);
-                        endcase
-                        // ---- RTS: dummy fetch, pop PC (high word first), internal, prefetch
-                        G_RTS: case (step)
-                            5'd0: go_wait(5'd2, S_EXEC, 5'd1);
-                            5'd1: start_read(er[7][23:0], 1'b1, S_EXEC, 5'd2);
-                            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(er[7][23:0] + 24'd2, 1'b1, S_EXEC, 5'd3); end
-                            default: begin pc <= {tmp1[7:0], mdata}; er[7] <= er[7] + 32'd4; go_wait(5'd2, S_FETCH, 5'd0); end
-                        endcase
-                        // ---- RTE: dummy fetch, pop CCR:PCH then PCL, internal, prefetch
-                        G_RTE: case (step)
-                            5'd0: go_wait(5'd2, S_EXEC, 5'd1);
-                            5'd1: start_read(er[7][23:0], 1'b1, S_EXEC, 5'd2);
-                            5'd2: begin tmp1 <= {16'd0, mdata}; start_read(er[7][23:0] + 24'd2, 1'b1, S_EXEC, 5'd3); end
-                            default: begin ccr <= tmp1[15:8]; pc <= {tmp1[7:0], mdata}; er[7] <= er[7] + 32'd4; go_wait(5'd2, S_FETCH, 5'd0); end
-                        endcase
-                        // ---- TRAPA #n: like an interrupt with vector 8+n
-                        G_TRAPA: begin
-                            cur_vec <= 8'd8 + {6'd0, d_ival[1:0]};
-                            tmp2 <= {8'd0, pc};
-                            step <= 5'd0; state <= S_IRQ;
-                        end
-                        // ---- EEPMOV: copy R4L/R4 bytes from @ER5 to @ER6
-                        G_EEPMOV: case (step)
-                            5'd0: begin
-                                if ((d_sz == 2'd0 && er[4][7:0] == 8'd0) || (d_sz == 2'd1 && er[4][15:0] == 16'd0)) state <= S_FETCH;
-                                else start_read(er[5][23:0], 1'b0, S_EXEC, 5'd1);
-                            end
-                            5'd1: begin
-                                start_write(er[6][23:0], 1'b0, {8'd0, lane8(er[5][23:0], mdata)}, S_EXEC, 5'd0);
-                                er[5] <= er[5] + 32'd1; er[6] <= er[6] + 32'd1;
-                                if (d_sz == 2'd0) er[4][7:0] <= er[4][7:0] - 8'd1; else er[4][15:0] <= er[4][15:0] - 16'd1;
-                            end
-                            default: state <= S_FETCH;
-                        endcase
-                        default: state <= S_FETCH;
-                        endcase
-                    end
-                end
-
-                // ---------------------------------------------- internal states
                 S_WAIT: begin
-                    if (wait_n <= 5'd1) begin state <= ret_state; step <= ret_step; end
+                    if (wait_n <= 5'd1) dispatch(ret_state, ret_step);
                     else wait_n <= wait_n - 5'd1;
                 end
-
-                // ---------------------------------------------- interrupt / trap entry
-                // internal(1); push NPC low; push CCR:NPC high; read vector; internal(1); prefetch
-                S_IRQ: case (step)
-                    5'd0: go_wait(5'd2, S_IRQ, 5'd1);
-                    5'd1: begin er[7] <= er[7] - 32'd2; start_write(er[7][23:0] - 24'd2, 1'b1, tmp2[15:0], S_IRQ, 5'd2); end
-                    5'd2: begin er[7] <= er[7] - 32'd2; start_write(er[7][23:0] - 24'd2, 1'b1, {ccr, tmp2[23:16]}, S_IRQ, 5'd3); end
-                    5'd3: start_read({14'd0, cur_vec, 2'b00}, 1'b1, S_IRQ, 5'd4);
-                    5'd4: begin tmp1 <= {16'd0, mdata}; start_read({14'd0, cur_vec, 2'b10}, 1'b1, S_IRQ, 5'd5); end
-                    5'd5: begin
-                        pc <= {tmp1[7:0], mdata};
-                        ccr[F_I] <= 1'b1;        // SYSCR UE=1 (reset value): only I is set
-                        noirq <= 1'b1;
-                        go_wait(5'd2, S_FETCH, 5'd0);
-                    end
-                    default: state <= S_FETCH;
-                endcase
-
-                // ---------------------------------------------- SLEEP: wait for an interrupt
-                S_SLEEP: begin
-                    if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; state <= S_FETCH; end
-                end
-                default: state <= S_FETCH;
+                S_RESET0: begin ccr <= ccr | 8'h80; start_read(24'd0, 1'b1, S_RESET1, 5'd0); end
+                S_FETCH:  finish(pc);
+                S_EXEC:   exec_step(step, ea);
+                S_IRQ:    irq_step(step);
+                S_SLEEP:  begin if (irq_vector != 8'd0) begin dbg_sleep <= 1'b0; finish(pc); end end
+                default:  state <= S_FETCH;
                 endcase
             end
         end

@@ -47,6 +47,17 @@ emu.register_frame_done(function()
     dump_range(out .. "/h8_iram.txt", 0xfffd10, 0x200, 2)
     dump_range(out .. "/shared.txt", 0x200000, 0x10000, 2)
     dump_range(out .. "/h8_io.txt", 0xffff20, 0xe0, 1)
+    -- port direction/data registers (DDR is write-only on the bus, so read the device state)
+    local pf = io.open(out .. "/h8_ports.txt", "w")
+    for _, pn in ipairs({"4", "6", "7", "8", "9", "a", "b"}) do
+      local dev = machine.devices[":mcu:port" .. pn]
+      if dev then
+        local ddr = emu.item(dev.items["0/m_ddr"]):read(0)
+        local dr  = emu.item(dev.items["0/m_dr"]):read(0)
+        pf:write(string.format("%s %02x %02x\n", pn, ddr, dr))
+      end
+    end
+    pf:close()
     dbg:command("wpset 200000:mcu,10000,r,,{logerror \"H8R %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")
     dbg:command("wpset 200000:mcu,10000,w,,{logerror \"H8W %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")
     dbg:command("wpset a00000:mcu,8000,r,,{logerror \"H8R %d %06X %04X\\n\",cycles,wpaddr,wpdata; g}")
