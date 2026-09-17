@@ -281,19 +281,22 @@ module ygv608_render (
                     cs_lo <= sdt_q;
                     st <= S_T_PNT1;
                 end else begin
-                    pnt_addr <= pnt_index(row, col, plane)[11:1];
+                    logic [12:0] pnt_idx_v;
+                    pnt_idx_v = pnt_index(row, col, plane);
+                    pnt_addr <= pnt_idx_v[11:1];
                     st <= S_T_PAGE0;
                 end
             end
             S_T_PNT1: begin
-                logic [15:0] csn; logic [9:0] tyn, tsh; logic [6:0] rown;
+                logic [15:0] csn; logic [9:0] tyn, tsh; logic [6:0] rown; logic [12:0] pnt_idx_v;
                 csn  = {sdt_q, cs_lo};
                 tyn  = ({2'b00, y} + csn[9:0]) & th_m1;
                 tsh  = tyn >> log2ts;
                 rown = tsh[6:0];
                 row <= rown;
                 py  <= tyn[4:0] & ts_m1;
-                pnt_addr <= pnt_index(rown, col, plane)[11:1];
+                pnt_idx_v = pnt_index(rown, col, plane);
+                pnt_addr <= pnt_idx_v[11:1];
                 st <= S_T_PAGE0;
             end
             S_T_PAGE0: begin

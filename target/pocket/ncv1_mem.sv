@@ -110,7 +110,8 @@ module ncv1_mem (
     assign c_addr[2] = SD_SUB  + {6'd0, sub_addr};   assign c_req[2] = sub_req;  assign sub_ack  = c_ack[2]; assign sub_q  = sd_rdata;
     assign c_addr[3] = SD_PCM  + {4'd0, pcm_addr[20:1]}; assign c_req[3] = pcm_req; assign pcm_ack = c_ack[3];
     assign pcm_q = pcm_addr[0] ? sd_rdata[7:0] : sd_rdata[15:8];
-    generate for (genvar gi = 1; gi < NCLI; gi++) begin : g_ro
+    genvar gi;
+    generate for (gi = 1; gi < NCLI; gi++) begin : g_ro
         assign c_we[gi] = 1'b0; assign c_wdata[gi] = '0; assign c_be[gi] = 2'b00;
     end endgenerate
 

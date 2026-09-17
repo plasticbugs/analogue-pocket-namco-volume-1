@@ -446,6 +446,7 @@ module h8300h (
     // ------------------------------------------------------------ ALU
     // res/ccr for op on (a = dest, b = src) at size sz with the current ccr
     logic [31:0] alu_a, alu_b, alu_res;
+    logic  [7:0] bitreg_v;
     logic  [7:0] alu_ccr;
     logic  [2:0] alu_bitn;
     op_t         alu_op;
@@ -986,7 +987,8 @@ module h8300h (
     // ALU operand routing
     always_comb begin
         alu_op = d_op; alu_sz = d_sz;
-        alu_bitn = d_bitreg ? r8(d_rs)[2:0] : d_bit;
+        bitreg_v = r8(d_rs);
+        alu_bitn = d_bitreg ? bitreg_v[2:0] : d_bit;
         if (d_grp == G_BITMEM) begin
             alu_a = {24'd0, lane8(ea, mdata)}; alu_b = 32'd0;
         end else if (d_op == HO_MULXU || d_op == HO_MULXS) begin
@@ -1000,5 +1002,5 @@ module h8300h (
     end
 
     // unused
-    wire _unused = &{1'b0, ir4[0], tmp2[31:24]};
+    wire _unused = &{1'b0, ir4[0], tmp2[31:24], bitreg_v[7:3]};
 endmodule

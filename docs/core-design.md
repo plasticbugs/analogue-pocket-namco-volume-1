@@ -139,3 +139,17 @@ does (`core_top.sv` save block).
 P1/P2 8-way joystick + 3 buttons + start; coin, service, test in the DSW
 port (all active low). Pocket mapping: d-pad, A = button 1, B = button 2,
 X = button 3, Start, Select = coin; Test/Service via the interact menu.
+
+## 8. Status (2026-09-17)
+
+| Block | State |
+|---|---|
+| H8/300H CPU (`rtl/h8300h.sv`) | trace replay PASS on boot (133k instr) and gameplay (802k instr) captures, state-exact against MAME |
+| H8/3002 peripherals + decode (`rtl/h83002.sv`, `rtl/ncv1_sub.sv`) | trace replay PASS with timers, INTC and ports modelled; timer IRQs within a few instructions of MAME |
+| YGV608 (`rtl/ygv608*.sv`) | pixel-exact on 65 states; worst line 2611/6210 clocks with random 4-12 clock memory latency |
+| C352 (`rtl/c352.sv`) | 40 s replay within 0.3% RMS of MAME, all register reads exact |
+| 68000 side, memories, top (`rtl/ncv1_main.sv`, `rtl/ncv1_core.sv`, `target/pocket/*`) | whole-machine bench boots: self-test RAM OK, sound, title screen; Quartus map pending |
+
+Open: the boot reaches the title ~50-100 frames later than MAME (68000 speed
+through the SDRAM cache to be measured); the `unsupported` video flag is raised
+during boot (source being identified); no hardware run yet.

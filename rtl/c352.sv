@@ -85,8 +85,9 @@ module c352 #(
     wire         cpu_flags_wr = cpu_vreg_wr && cpu_reg == 3'd3;
     // the CPU beats the engine on a same-clock write of the same voice's flags
     wire         cpu_flags_hit = cpu_flags_wr && cpu_voice == eng_voice;
+    genvar r;
     generate
-        for (genvar r = 0; r < 8; r++) begin : g_reg
+        for (r = 0; r < 8; r++) begin : g_reg
             logic [15:0] mem [32];
             always_ff @(posedge clk) begin
                 if (cpu_vreg_wr && cpu_reg == r[2:0]) begin

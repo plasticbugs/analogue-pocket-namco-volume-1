@@ -22,6 +22,7 @@ module tb_video_top (
     output logic        irq_vblank,
     output logic        irq_raster,
     output logic        unsupported,
+    output logic  [3:0] unsup_src,
     output logic  [8:0] dot,
     output logic  [8:0] line,
     output logic [15:0] max_clocks,
