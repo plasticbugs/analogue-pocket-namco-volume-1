@@ -48,3 +48,6 @@ artifacts/c352/*_log.txt
 # vendor manuals: download from the vendor, never redistribute
 ref/docs/*.pdf
 ref/docs/*.txt
+
+# packaged builds (CI artifacts or local packaging)
+release/
