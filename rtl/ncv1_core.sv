@@ -128,7 +128,7 @@ module ncv1_core #(
         .a_addr(a_sh_addr), .a_req(a_sh_req), .a_we(a_sh_we), .a_wdata(a_sh_wdata), .a_q(a_sh_q), .a_ack(a_sh_ack),
         .b_addr(b_sh_addr), .b_req(b_sh_req), .b_we(b_sh_we), .b_wdata(b_sh_wdata), .b_q(b_sh_q), .b_ack(b_sh_ack)
     );
-    at28c16 u_eeprom (
+    at28c16 #(.HEXDIR(HEXDIR)) u_eeprom (
         .clk(clk), .reset(reset),
         .addr(eep_addr), .req(eep_req), .we(eep_we), .wdata(eep_wdata), .q(eep_q), .ack(eep_ack),
         .ld_we(eep_ld_we), .ld_addr(eep_ld_addr), .ld_data(eep_ld_data),

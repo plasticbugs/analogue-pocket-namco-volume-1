@@ -4,10 +4,14 @@
 // request; writes are immediate (the real part's 10 ms write cycle is not
 // modelled -- MAME does not either). A load port fills it from the Pocket's
 // save slot during reset and a read-out port streams it back for saving.
+// Powers up erased (0xFF), as MAME's nvram_default does, so a first boot with
+// no save file lets the game initialise its settings.
 //------------------------------------------------------------------------------
 `default_nettype none
 
-module at28c16 (
+module at28c16 #(
+    parameter HEXDIR = "rtl/data"
+) (
     input  logic        clk,
     input  logic        reset,
     // CPU port
@@ -24,9 +28,10 @@ module at28c16 (
     // read-out for saving: rd_addr -> rd_q the next clock
     input  logic [10:0] rd_addr,
     output logic  [7:0] rd_q,
-    output logic        dirty          // a CPU write happened since the last clear
+    output logic        dirty          // toggles on every CPU write (the save logic watches for changes)
 );
     logic [7:0] mem [2048];
+    initial $readmemh({HEXDIR, "/at28c16_erased.hex"}, mem);
     logic busy;
     wire  go = req & ~busy;
     always_ff @(posedge clk) begin
@@ -45,6 +50,6 @@ module at28c16 (
     always_ff @(posedge clk) rd_q <= mem[rd_addr];
     always_ff @(posedge clk) begin
         if (reset) dirty <= 1'b0;
-        else if (go && we) dirty <= 1'b1;
+        else if (go && we) dirty <= ~dirty;
     end
 endmodule

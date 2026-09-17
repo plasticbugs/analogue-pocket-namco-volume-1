@@ -14,10 +14,10 @@ CPU, Yamaha YGV608 video, Namco C352 sound.
 |---|---|---|
 | 68000 @ 12.288 MHz | fx68k (cycle-accurate) | system bench |
 | H8/3002 @ 16.384 MHz | `rtl/h8300h.sv` + `rtl/h83002.sv`, written from MAME's `h8.lst` | trace replay: 800k instructions of gameplay in lockstep with MAME, every non-ROM access and interrupt matched (`sim/run_sub.sh`) |
-| Yamaha YGV608 VDP | `rtl/ygv608.sv`, `rtl/ygv608_render.sv` | pixel-exact on 65 frozen MAME states across every video mode the games use (`tools/regress_video.sh`) |
+| Yamaha YGV608 VDP | `rtl/ygv608.sv`, `rtl/ygv608_render.sv` | pixel-exact on 79 frozen MAME states across every video mode the games use, including the title's rotation/zoom (`tools/regress_video.sh`) |
 | Namco C352 PCM | `rtl/c352.sv` | 40 s of MAME's register writes replayed, output within 0.3% of MAME's WAV (`sim/run_c352.sh`) |
 | AT28C16 EEPROM | `rtl/at28c16.sv`, saved to `ncv1.sav` | — |
-| 5.5 MB ROM | Pocket SDRAM (`target/pocket/ncv1_mem.sv`) with instruction caches | system bench |
+| 5.5 MB ROM | Pocket SDRAM (`target/pocket/ncv1_mem.sv`) with instruction caches | image load and read-back through every port with the SDRAM chip model (`sim/run_mem.sh`) |
 
 `docs/hardware.md` describes the board, `docs/core-design.md` the mapping onto
 the Pocket, `docs/ygv608.md` the VDP semantics the RTL was written from, and
@@ -56,11 +56,12 @@ push; a tag cuts a release with the tested bitstream.
 
 ```
 sim/lint.sh                    # Verilator -Wall over every block
-tools/regress_render.sh        # reference renderer vs MAME snapshots (65 states)
+tools/regress_render.sh        # reference renderer vs MAME snapshots (79 states)
 tools/regress_video.sh         # VDP RTL vs the reference renderer
 sim/run_h8.sh                  # H8/300H CPU trace replay (artifacts/h8)
 sim/run_sub.sh                 # H8/3002 + peripherals + decode trace replay
 sim/run_c352.sh                # C352 vs MAME audio
+sim/run_mem.sh                 # SDRAM partition: load the image, read it back through every port
 sim/run_system.sh 400          # boot the whole machine, frames and audio to sim/obj_system/out
 ```
 

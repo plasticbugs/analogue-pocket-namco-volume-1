@@ -98,7 +98,7 @@ ROM `nc1cg0.10c` (mirrored to 8 MB) through the gfx bank in the cuskey.
 | R#14 | 01 | vblank IRQ enabled |
 | R#15/16 | DC/DC | raster IRQ position (unused, mask off) |
 | R#17–24 | 00 | base addresses |
-| R#25–38 | 0 except R#29=02, R#36=02 | ROZ identity (DX=DY=1.0), unused (ZRON=0) |
+| R#25–38 | 0 except R#29=02, R#36=02 | ROZ identity at boot; the title animation (frames ~330-700) sets ZRON and rotates/zooms the Namco logo (docs/ygv608.md §10) |
 | R#39 | 62 | HSW=3 (48 dots), HBW=2 (32 dots) |
 | R#40 | 64 | HDW=36 (576 units → 288 pixels), HTL[9:8]=01 |
 | R#41 | 36 | HDS=0x36 → display start 108 |
@@ -108,8 +108,10 @@ ROM `nc1cg0.10c` (mirrored to 8 MB) through the gfx bank in the cuskey.
 | R#45 | 9A | VTL[8]=1, VDS=26 |
 | R#46 | 05 | VTL[7:0] → vtotal 261 |
 
-These values were constant through boot, attract and Galaga; other games and
-modes must be probed the same way (`tools/probe_ygv.lua`).
+These are the boot values. The games switch modes freely: the frozen-state
+corpus (`artifacts/states/`, `tools/make_corpus.sh`) covers MD 0-3, 8x8 and
+16x16 patterns, row and column scroll, both priority modes, both sprite aux
+modes, and ROZ.
 
 ### 4.2 Timing
 
