@@ -192,7 +192,10 @@ download index, the core-initiated write, the size table); they move together.
 
 P1/P2 8-way joystick + 3 buttons + start; coin, service, test in the DSW
 port (all active low). Pocket mapping: d-pad, A = button 1, B = button 2,
-X = button 3, Start, Select = coin; Test/Service via the interact menu.
+X = button 3, Select = coin, Start = 1P start, Y = 2P start (a second pad's
+Start is also the 2P start); Test/Service via the interact menu. `input.json`
+lists the six buttons in that order and not the directions, so the Pocket's
+remap menu has no empty rows (it shows eight).
 
 ## 8. Status (2026-09-17)
 

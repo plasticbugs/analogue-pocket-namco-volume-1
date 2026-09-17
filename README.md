@@ -65,8 +65,10 @@ switches live between the cabinet's 3:4 and square pixels. The aspect values in
 
 ## Controls
 
-D-pad or stick moves; A = button 1, B = button 2, X/Y = button 3, Select =
-coin, Start = start. A second pad plays player 2. Test/service switches are in
+D-pad or stick moves; A = button 1, B = button 2, X = button 3, Select =
+coin, Start = 1 player start, Y = 2 player start. A second pad plays player 2,
+and its Start is also the 2 player start. The buttons can be remapped in the
+Pocket's controls menu; the directions are fixed. Test/service switches are in
 the core's interact menu.
 
 ## Building the core

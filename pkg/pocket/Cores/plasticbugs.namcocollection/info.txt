@@ -20,10 +20,12 @@ Controls
   D-pad / stick   move
   A               button 1
   B               button 2
-  X or Y          button 3
+  X               button 3
   Select          coin
-  Start           start
-  (a second pad plays player 2)
+  Start           1 player start
+  Y               2 player start
+  (a second pad plays player 2;
+  its Start is also 2 player start)
 
 Settings and records are kept in the
 EEPROM, saved per collection to

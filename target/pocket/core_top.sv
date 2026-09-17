@@ -427,9 +427,13 @@ module core_top
     wire        nv_load_we = nv_dl_download && nv_dl_index == 16'h2 && nv_dl_wr;
     // inputs: active low. DSW: bit 8 freeze, 9 test, 12 coin1, 13 coin2, 14 service, 15 service1
     wire        test_sw = mod_sw1[0] | svc_sw;
-    wire        p1_b1 = p1_btn_a | j1_up & 1'b0, p1_b2 = p1_btn_b, p1_b3 = p1_btn_x | p1_btn_y;
-    wire        p2_b1 = p2_btn_a, p2_b2 = p2_btn_b, p2_b3 = p2_btn_x | p2_btn_y;
-    wire [15:0] p1p2 = ~{p2_start, p2_b3, p2_b2, p2_b1, p2_up | j2_up, p2_down | j2_down, p2_left | j2_left, p2_right | j2_right,
+    // A/B/X = buttons 1-3. Start is the 1P start; the 2P start is Y on the first pad (the
+    // handheld has one Start button and both collections ask for "1P or 2P start") or
+    // Start on a second pad. input.json lists exactly these, in this order.
+    wire        p1_b1 = p1_btn_a, p1_b2 = p1_btn_b, p1_b3 = p1_btn_x;
+    wire        p2_b1 = p2_btn_a, p2_b2 = p2_btn_b, p2_b3 = p2_btn_x;
+    wire        start2 = p2_start | p1_btn_y;
+    wire [15:0] p1p2 = ~{start2, p2_b3, p2_b2, p2_b1, p2_up | j2_up, p2_down | j2_down, p2_left | j2_left, p2_right | j2_right,
                          p1_start, p1_b3, p1_b2, p1_b1, p1_up | j1_up, p1_down | j1_down, p1_left | j1_left, p1_right | j1_right};
     wire [15:0] dsw  = ~{mod_sw1[1], 1'b0, p2_select, p1_select, 2'b00, test_sw, 1'b0, 8'h00};
 
@@ -461,7 +465,7 @@ module core_top
         .dbg_68k_halted(dbg_68k_halted), .dbg_68k_addr(dbg_68k_addr), .dbg_h8_run(dbg_h8_run), .dbg_h8_pc(dbg_h8_pc),
         .dbg_h8_istart(dbg_h8_istart), .dbg_h8_irq(dbg_h8_irq), .dbg_video_unsupported(dbg_vunsup), .dbg_video_unsup_src(dbg_vunsup_src), .dbg_gfxbank(dbg_gfxbank), .dbg_c352_overrun(dbg_c352_ovr)
     );
-    wire _unused_top = &{1'b0, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
+    wire _unused_top = &{1'b0, p2_btn_y, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
                          dip_sw0, dip_sw1, dip_sw2, dip_sw3, mod_sw2, mod_sw3, status, clk_unused1, dataslot_requestread,
                          dataslot_requestread_id, dataslot_requestwrite_size, dataslot_update, dataslot_update_id,
                          dataslot_update_size, target_dataslot_err, cont1_trig, cont2_trig, cont3_trig, cont4_trig,
