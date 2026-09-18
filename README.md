@@ -11,8 +11,14 @@ video, Namco C352 sound. The two collections are the same hardware with
 different ROMs (Vol.2 fills a second character-ROM socket), so one bitstream
 runs both and the Pocket lists them by name.
 
-**Status: pre-release.** Every block is verified against MAME in simulation
-(below) with both collections; nothing has run on a Pocket yet.
+<p align="center">
+  <img src="docs/images/vol1-title.png" width="224" alt="Namco Classic Collection Vol.1 title screen">
+  &nbsp;&nbsp;
+  <img src="docs/images/vol2-title.png" width="224" alt="Namco Classic Collection Vol.2 title screen">
+</p>
+
+**Status: released** (v0.2.1). Every block is verified against MAME in
+simulation (below) with both collections, and the core runs on a Pocket.
 
 ## What is in the box
 
