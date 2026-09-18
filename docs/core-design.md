@@ -219,9 +219,9 @@ Also verified: a scripted whole-machine run (`sim/run_system.sh`) boots Vol.1,
 takes coins, navigates the menus and starts Galaga. The boot runs about 50
 frames behind MAME's timeline (under a second).
 
-Timing closed at 96 MHz for the Vol.1-only build (0.1.0, +0.24 ns worst
-setup). The combined build releases the H8's reset on an enable and registers
-the H8's shared-RAM decode, both for timing; CI reports the slack. No hardware run
-yet: the instance-file packaging (three data slots) follows the Punch-Out!!
-and Atari System 2 cores, which load this way on a Pocket, but this core's
-slots have not been exercised on one.
+Timing closes at 96 MHz with the speed-first Quartus settings (+0.24 ns worst
+setup at the slow 85 C corner, 74 % of the ALMs; the area-first settings the
+project inherited from Gaiapolis swung between +0.2 and -0.4 ns from build to
+build). Released as v0.2.1 and running on a Pocket: both collections load
+through the instance files, play with sound, and keep their settings and
+records in their own saves.
