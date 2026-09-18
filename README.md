@@ -114,6 +114,8 @@ collections, `tools/capture_h8.sh` the four sub-CPU traces, and
 
 ## Credits
 
+Thanks to Global_Bid_8341 on Reddit for suggesting this core!
+
 The Namco ND-1-specific RTL, reference renderer and verification harness
 (`rtl/`, `tools/`, `sim/`) are original; the rest of the core is built on
 MAME's device models, one vendored CPU core, and the Pocket's platform layer.
