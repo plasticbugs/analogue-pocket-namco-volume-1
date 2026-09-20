@@ -21,6 +21,10 @@ db/
 incremental_db/
 greybox_tmp/
 .qsys_edit/
+# post_flow.tcl drops the bit-reversed bitstream here; Quartus leaves the pin
+# model dump next to the project. Both reappear on every local compile.
+.build/
+projects/c5_pin_model_dump.txt
 
 .DS_Store
 

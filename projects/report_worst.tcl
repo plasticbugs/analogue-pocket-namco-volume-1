@@ -19,7 +19,7 @@ puts "dram_clk paths returned: $nd"
 puts "report_timing returned: $n"
 # worst setup paths ending in each block, so one failing block cannot hide the others
 set fh [open output_files/worst_by_module.txt w]
-foreach m {h8300h_core h8300h h83002 ncv1_sub fx68k ncv1_main ygv608_render ygv608 c352 rom_cache shared_ram at28c16 clk_enables ncv1_core ncv1_mem sdram_ctrl dbg_overlay core_top} {
+foreach m {h8300h_core h8300h h83002 ncv1_sub fx68k ncv1_main ygv608_render ygv608 c352 rom_cache shared_ram at28c16 clk_enables ncv1_core ncv1_mem sdram_ctrl dbg_overlay openFPGA_Pocket_Analogizer openFPGA_Pocket_Analogizer_SNAC Hq2x scandoubler_2 yc_out_legacy serlatch_game_controller analogizer_psx core_top} {
     set paths [get_timing_paths -setup -npaths 3 -to [get_keepers "*|${m}:*|*"]]
     foreach_in_collection p $paths {
         puts $fh [format "%-14s %8.3f  %s -> %s" $m [get_path_info $p -slack] \

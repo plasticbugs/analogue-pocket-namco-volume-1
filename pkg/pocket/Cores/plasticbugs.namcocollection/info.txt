@@ -30,3 +30,17 @@ image from your own MAME romset with
 the included mra_build.py and copy
 ncv1.rom / ncv2.rom into
 Assets/namcocollection/common/.
+
+Analogizer
+  Analog video out of the cart port
+  and SNAC pads in, set up through
+  Assets/analogizer/common/
+  analogizer.bin (Pupdate or
+  Analogizer Configurator). The
+  board's own 288x224 raster goes
+  out at 15.46 kHz: turn the CRT,
+  as the cabinet did. Untested --
+  nobody here owns the adapter.
+  The cart slot is powered for
+  everyone; do not leave a
+  cartridge in it.

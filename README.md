@@ -17,7 +17,7 @@ runs both and the Pocket lists them by name.
   <img src="docs/images/vol2-title.png" width="224" alt="Namco Classic Collection Vol.2 title screen">
 </p>
 
-**Status: released** (v0.2.1). Every block is verified against MAME in
+**Status: released** (v0.3.0). Every block is verified against MAME in
 simulation (below) with both collections, and the core runs on a Pocket.
 
 ## What is in the box
@@ -86,6 +86,18 @@ both sides. There are no scanline or shadow-mask entries: the platform's
 patterns are scaled and rotated with this vertical raster and look wrong on
 it. Test/service switches are in
 the core's interact menu.
+
+## Analogizer
+
+The core supports RndMnkIII's [Analogizer](https://github.com/RndMnkIII/Analogizer)
+cart-slot adapter: analog video (RGBS, RGsB, YPbPr, Y/C, SVGA scandoubler) out
+of the cartridge port and SNAC controllers in. The analog output is the board's
+own 288x224 raster at 15.46 kHz and 59.92 Hz, unrotated, so a CRT has to be
+turned as the cabinet's was. Settings come from
+`Assets/analogizer/common/analogizer.bin`, shared with every other Analogizer
+core on the card. **Untested**: nobody here owns an adapter. `docs/analogizer.md`
+has the details, including the warning that this turns cartridge-slot power on
+for every user of the core.
 
 ## Building the core
 
@@ -177,6 +189,11 @@ MAME's device models, one vendored CPU core, and the Pocket's platform layer.
   `platform/pocket/peripherals/` are supplied by **Analogue Enterprises
   Limited** under its own Analogue Pocket Framework Software License
   Agreement and EULA, not under the GPL/MIT terms above.
+* `target/pocket/analogizer/` is the
+  [Analogizer](https://github.com/RndMnkIII/Analogizer) adapter interface by
+  **RndMnkIII**, carried across unmodified. It in turn contains work from the
+  MiST project (scandoubler), the MiSTer project (YPbPr, hq2x) and
+  **Mike Simone**'s [Y/C encoder](https://github.com/MikeS11/MiSTerFPGA_YC_Encoder).
 * `target/pocket/sdram_ctrl.sv`'s pin-level timing (CL2, read data captured at
   READ+4) is carried over from the Punch-Out!! core's `sdram16.sv`, by way of
   the S.T.U.N. Runner and Gaiapolis cores, all proven on the Pocket at 96 MHz.

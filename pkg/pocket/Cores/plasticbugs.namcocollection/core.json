@@ -3,14 +3,15 @@
     "magic": "APF_VER_1",
     "metadata": {
       "platform_ids": [
-        "namcocollection"
+        "namcocollection",
+        "analogizer"
       ],
       "shortname": "namcocollection",
       "description": "Namco Classic Collection Vol.1 and Vol.2 (Namco ND-1, 1995-96)",
       "author": "plasticbugs",
       "url": "https://github.com/plasticbugs/analogue-pocket-namco-volume-1",
-      "version": "0.2.1",
-      "date_release": "2026-09-17"
+      "version": "0.3.0",
+      "date_release": "2026-09-19"
     },
     "framework": {
       "target_product": "Analogue Pocket",
@@ -22,7 +23,7 @@
       },
       "hardware": {
         "link_port": false,
-        "cartridge_adapter": -1
+        "cartridge_adapter": 0
       }
     },
     "cores": [

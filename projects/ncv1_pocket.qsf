@@ -46,9 +46,12 @@ set_global_assignment -name CRC_ERROR_OPEN_DRAIN ON
 set_global_assignment -name ECO_OPTIMIZE_TIMING ON
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 # AUTO FIT stops as soon as it believes constraints are met and leaves margin
-# on the table; at 99% utilisation, with setup and hold trading against each
-# other, we need every picosecond the placer can find.
-set_global_assignment -name FITTER_EFFORT "AUTO FIT"
+# on the table. That was survivable while the design sat at 73% of the device
+# and closed 96 MHz by 0.24 ns; with the Analogizer in it at 83% the same fit
+# stopped at 0.009 ns on the cold corner, which is not a margin, it is a coin
+# toss between one compile and the next. STANDARD FIT is the high-effort
+# setting and keeps placing after the constraint is met.
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
 set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON
 set_global_assignment -name PERIPHERY_TO_CORE_PLACEMENT_AND_ROUTING_OPTIMIZATION ON
 set_global_assignment -name PHYSICAL_SYNTHESIS_ASYNCHRONOUS_SIGNAL_PIPELINING ON
@@ -417,6 +420,9 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../platform/pocket/support/save_i
 set_global_assignment -name SYSTEMVERILOG_FILE ../platform/pocket/helpers/synch_3.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../platform/pocket/helpers/synch_2.sv
 set_global_assignment -name QIP_FILE ../target/pocket/core.qip
+# Analogizer: RndMnkIII's cart-slot adapter (analog video out, SNAC pads in).
+# Listed after core.qip so the adapter's own sync_fix/vga_out helpers resolve.
+set_global_assignment -name QIP_FILE ../target/pocket/analogizer/analogizer.qip
 set_global_assignment -name SOURCE_FILE ../platform/pocket/bsp/pocket/pinouts/system.tcl
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to dram_dq[0]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to dram_dq[10]
