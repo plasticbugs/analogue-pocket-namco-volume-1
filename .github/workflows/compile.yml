@@ -109,9 +109,27 @@ jobs:
             exit 0
           fi
           cd release/pocket && zip -qr ../../namcocollection-pocket-sdcard.zip . && cd ../..
-          gh release create "${GITHUB_REF_NAME}" \
-            --title "Namco Classic Collection for Analogue Pocket ${GITHUB_REF_NAME}" \
-            --notes "Unzip onto the Pocket SD card root, overwriting previous files. Build ncv1.rom and ncv2.rom with the included mra_build.py and put them in Assets/namcocollection/common/." \
+
+          # A semver pre-release tag (v0.3.0-alpha.1, v1.0.0-rc2) is a test
+          # build: publish it as a pre-release so it does not displace the real
+          # release as "Latest" on the repository front page.
+          case "${GITHUB_REF_NAME}" in
+            *-*) PRE=--prerelease; KIND=" (pre-release)" ;;
+            *)   PRE=;             KIND= ;;
+          esac
+
+          # Per-tag release notes, if this tag has any; otherwise the standard
+          # "here is how to install it" line.
+          NOTES_FILE="docs/release-notes/${GITHUB_REF_NAME}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            NOTES_ARG=(--notes-file "$NOTES_FILE")
+          else
+            NOTES_ARG=(--notes "Unzip onto the Pocket SD card root, overwriting previous files. Build ncv1.rom and ncv2.rom with the included mra_build.py and put them in Assets/namcocollection/common/.")
+          fi
+
+          gh release create "${GITHUB_REF_NAME}" $PRE \
+            --title "Namco Classic Collection for Analogue Pocket ${GITHUB_REF_NAME}${KIND}" \
+            "${NOTES_ARG[@]}" \
             namcocollection-pocket-sdcard.zip
 
       - name: Upload reports

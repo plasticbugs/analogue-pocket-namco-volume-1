@@ -17,7 +17,8 @@ runs both and the Pocket lists them by name.
   <img src="docs/images/vol2-title.png" width="224" alt="Namco Classic Collection Vol.2 title screen">
 </p>
 
-**Status: released** (v0.3.0). Every block is verified against MAME in
+**Status: released** (v0.2.1); the `analogizer` branch adds Analogizer support
+and is in test as `v0.3.0-alpha.1`. Every block is verified against MAME in
 simulation (below) with both collections, and the core runs on a Pocket.
 
 ## What is in the box
