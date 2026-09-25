@@ -15,9 +15,10 @@ Supported MRA elements (the standard MiSTer subset):
         a run of literal bytes.
   <interleave output="16"> <part name=.. crc=.. map="01"/> ... </interleave>
         byte-interleave several ROMs into 16-bit words. Each digit of `map` is
-        one byte of the output word, left to right; the digit is the 1-based
-        byte of that part in the word ("01" = this ROM supplies byte 1, the
-        second/odd byte; "10" = the first/even byte).
+        one byte of the output word, read RIGHT TO LEFT as the MRA format and
+        mra-tools-c do: the rightmost digit is the word's first byte.  A digit
+        is the 1-based byte of that part in the word ("01" = this ROM supplies
+        the first/even byte; "10" = the second/odd byte).
 
 Nothing but Python 3 is required. The same .mra works with the standard MiSTer
 mra tools.
@@ -30,13 +31,20 @@ import xml.etree.ElementTree as ET
 
 
 def load_parts(path):
-    """Map lowercase member name -> bytes, from a zip or a directory."""
-    out = {}
+    """Every file in a zip or a directory, as (member path, lowercase base name, bytes).
+
+    A MERGED romset keeps each clone's files in the parent's zip, and where a
+    clone's ROM has the parent's name but other contents (MAME's "sldh") it is
+    stored under the clone's subdirectory, e.g. nbajamte4/l4_..._ug12.ug12
+    beside the parent's l4_..._ug12.ug12.  So files are not keyed by base name
+    alone -- the last one read would win -- and get_part picks by CRC."""
+    out = []
     if os.path.isdir(path):
-        for entry in os.scandir(path):
-            if entry.is_file():
-                with open(entry.path, 'rb') as f:
-                    out[entry.name.lower()] = f.read()
+        for root, _, files in os.walk(path):
+            for f in files:
+                full = os.path.join(root, f)
+                with open(full, 'rb') as fh:
+                    out.append((os.path.relpath(full, path), f.lower(), fh.read()))
         if not out:
             sys.exit(f'error: {path} contains no files')
         return out
@@ -46,10 +54,14 @@ def load_parts(path):
         with zipfile.ZipFile(path) as zf:
             for info in zf.infolist():
                 if not info.is_dir():
-                    out[os.path.basename(info.filename).lower()] = zf.read(info)
+                    out.append((info.filename, os.path.basename(info.filename).lower(), zf.read(info)))
     except zipfile.BadZipFile:
         sys.exit(f'error: {path} is neither a directory nor a readable zip')
     return out
+
+
+def _crc(data):
+    return zlib.crc32(data) & 0xffffffff
 
 
 def literal_bytes(node):
@@ -68,23 +80,29 @@ def get_part(parts, node):
     name = node.get('name')
     if name is None:
         return literal_bytes(node)
-    data = parts.get(name.lower())
     crc = node.get('crc')
-    if data is None and crc:
-        # romsets in the wild name some chips differently (ncv2's second
-        # character ROM is ncs1cg1.10f in MAME, ncs1cg1.10e in some dumps):
-        # take the one member whose CRC is listed
-        wanted = [int(c, 16) for c in crc.split('|')]
-        hits = [k for k, v in parts.items() if zlib.crc32(v) & 0xffffffff in wanted]
-        if len(hits) == 1:
-            data = parts[hits[0]]
+    # "a|b" accepts either (the MRA format allows alternatives)
+    want = {int(c, 16) for c in crc.split('|')} if crc else None
+    named = [(p, d) for p, b, d in parts if b == name.lower()]
+    data = None
+    if want is None:
+        if named:
+            # no CRC to choose by: prefer the copy at the top of the set
+            data = min(named, key=lambda pd: pd[0].count('/'))[1]
+    else:
+        # the file of that name whose CRC matches (a merged set can hold a
+        # clone's same-named file in a subdirectory), else any file with that
+        # CRC: older dumps carry some files under other names (nbau12.u12
+        # for l1_nba_jam_u12_sound_rom.u12), and the CRC identifies them.
+        data = next((d for p, d in named if _crc(d) in want), None)
+        if data is None:
+            data = next((d for p, b, d in parts if _crc(d) in want), None)
+        if data is None and named:
+            got = ', '.join(f'{p} crc {_crc(d):08x}' for p, d in named)
+            sys.exit(f'error: {name}: no copy has crc {crc} (found {got}); '
+                     f'this .mra wants a different revision of the set')
     if data is None:
         sys.exit(f'error: {name} is missing from the romset')
-    if crc:
-        # several acceptable dumps may be listed as "aaaaaaaa|bbbbbbbb"
-        actual = zlib.crc32(data) & 0xffffffff
-        if actual not in [int(c, 16) for c in crc.split('|')]:
-            sys.exit(f'error: {name} has crc {actual:08x}, expected {crc}')
     offset = int(node.get('offset', '0'), 0)
     length = node.get('length')
     if length is not None:
@@ -128,7 +146,7 @@ def do_interleave(parts, node):
     out = bytearray(n_words * nbytes)
     for label, data, m in sources:
         k = sum(1 for d in m if d != '0')
-        for pos, d in enumerate(m):
+        for pos, d in enumerate(reversed(m)):     # rightmost digit = first byte
             if d == '0':
                 continue
             src_index = int(d) - 1     # which of this part's k bytes per word
