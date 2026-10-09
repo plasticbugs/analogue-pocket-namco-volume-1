@@ -100,7 +100,7 @@ Analogizer Video, SNAC Adapter, SNAC Assignment, H and V Position to
 centre the picture on the CRT, and H Size for its width -- with the set on
 its side, the game's height); with "Analogizer" off, the default, the core
 is unchanged, and no `analogizer.bin` is needed. Tested on a Pocket with an
-Analogizer and a CRT (v0.3.0); H Size is newer and not yet tried. `docs/analogizer.md`
+Analogizer and a CRT (v0.3.0, and H Size in v0.3.1). `docs/analogizer.md`
 has the details, including the warning that this turns cartridge-slot power on
 for every user of the core.
 
