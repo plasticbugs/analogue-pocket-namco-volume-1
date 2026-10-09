@@ -1,11 +1,13 @@
 #!/bin/sh
 # Publish a release built from a specific, hardware-verified CI build.
 #
-# Usage: cut-release.sh <tag> <run-id>
+# Usage: cut-release.sh <tag> <run-id | bitstream.rbf_r>
+#        cut-release.sh v1.0.0 release/pocket/Cores/plasticbugs.namcocollection/bitstream.rbf_r
 #        cut-release.sh v1.0.0 32214080417
 #
-# Takes the bitstream from that run rather than recompiling, so the release
-# ships the exact gateware that was tested on hardware. Everything outside the
+# Takes the bitstream from that CI run, or the local file that was flashed,
+# rather than recompiling, so the release ships the exact gateware that was
+# tested on hardware. Everything outside the
 # bitstream (JSON definitions, platform image, ROM recipe, README) comes from
 # the working tree, which is how a definition-only change can be released
 # without a rebuild.
@@ -19,6 +21,8 @@ RUN="$2"
 cd "$(dirname "$0")/.."
 
 command -v gh >/dev/null || { echo "gh CLI required"; exit 1; }
+# the notes, as the Compile Core workflow reads them
+[ -f "docs/release-notes/$TAG.md" ] || { echo "write docs/release-notes/$TAG.md first"; exit 1; }
 if gh release view "$TAG" >/dev/null 2>&1; then
     echo "release $TAG already exists; delete it first or pick another tag"; exit 1
 fi
@@ -29,8 +33,15 @@ fi
 STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 
-echo "fetching bitstream from run $RUN ..."
-gh run download "$RUN" -D "$STAGE" || { echo "download failed"; exit 1; }
+if [ -f "$RUN" ]; then
+    # a local bitstream: the one that was put on the card and tested
+    echo "bitstream from $RUN (md5 $(md5 -q "$RUN"))"
+    mkdir -p "$STAGE/local/plasticbugs.namcocollection"
+    cp "$RUN" "$STAGE/local/plasticbugs.namcocollection/bitstream.rbf_r"
+else
+    echo "fetching bitstream from run $RUN ..."
+    gh run download "$RUN" -D "$STAGE" || { echo "download failed"; exit 1; }
+fi
 # The run ships one bitstream per core, each under its own Cores/<id>/ folder.
 CORES=$(find "$STAGE" -name 'bitstream.rbf_r' -exec dirname {} \; | xargs -n1 basename | sort -u)
 [ -n "$CORES" ] || { echo "no bitstream in run $RUN"; exit 1; }
@@ -89,7 +100,7 @@ done
 
 gh release create "$TAG" \
     --title "Namco Classic Collection for Analogue Pocket $TAG" \
-    --notes "Unzip onto the Pocket SD card root, overwriting previous files. Build ncv1.rom and ncv2.rom with the included mra_build.py and put them in Assets/namcocollection/common/." \
+    --notes-file "docs/release-notes/$TAG.md" \
     "$ZIP"
 rm -f "$ZIP"
 echo "published $TAG"
