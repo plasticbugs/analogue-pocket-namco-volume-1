@@ -284,7 +284,7 @@ module core_top
             32'h2xxxxxxx: bridge_rd_data = nvm_bridge_rd_data_s;
             32'hF0000000, 32'hF0000010, 32'hF1000000, 32'hF2000000, 32'hF3000000, 32'hF4000000,
             32'hFA000000, 32'hFB000000: bridge_rd_data = int_bridge_rd_data;
-            32'hF7xxxxxx: bridge_rd_data = analogizer_bridge_rd_data;
+            32'hF7xxxxxx: bridge_rd_data = ana_bridge_rd_data;     // Analogizer settings (menu)
             32'hF8xxxxxx: bridge_rd_data = cmd_bridge_rd_data;
             default:      bridge_rd_data = 32'd0;
         endcase
@@ -348,62 +348,17 @@ module core_top
     );
 
     // ---------------------------------------------------------- Analogizer settings
-    // RndMnkIII's cartridge-slot adapter (docs/analogizer.md): analog video out
-    // of the cart port and SNAC controllers in. Everything except the on/off
-    // switch is read out of Assets/analogizer/common/analogizer.bin, which the
-    // APF loads into data slot 10 at 0xF7000000; the adapter block decodes it.
-    localparam [7:0] ADDRESS_ANALOGIZER_CONFIG = 8'hF7;
-    wire [31:0] analogizer_bridge_rd_data;
-    wire        analogizer_ena;
-    wire  [3:0] analogizer_video_type;
-    wire  [4:0] snac_game_cont_type;
-    wire  [3:0] snac_cont_assignment;
-    wire        pocket_blank_screen;
-    wire        snac_busy;
-    wire [15:0] snac_p1_btn, snac_p2_btn;
-    wire [31:0] snac_p1_joy, snac_p2_joy;
-
-    // A SNAC pad stands in for a Pocket pad. The adapter hands its buttons back
-    // in the Pocket's own PAD bitmap, so a SNAC pad reaches the same A/B/X,
-    // Select and Start this core already reads and nothing below here changes.
-    // The two PSX DualShock analog modes report the left stick rather than the
-    // d-pad, so those four bits are rebuilt from it.
-    wire        snac_is_analog = (snac_game_cont_type == 5'h12) || (snac_game_cont_type == 5'h13);
-    wire [15:0] snac_pad1 = {snac_p1_btn[15:4],
-                             snac_is_analog ? (snac_p1_joy[7:0]  > 8'hC0) : snac_p1_btn[3],
-                             snac_is_analog ? (snac_p1_joy[7:0]  < 8'h40) : snac_p1_btn[2],
-                             snac_is_analog ? (snac_p1_joy[15:8] > 8'hC0) : snac_p1_btn[1],
-                             snac_is_analog ? (snac_p1_joy[15:8] < 8'h40) : snac_p1_btn[0]};
-    wire [15:0] snac_pad2 = {snac_p2_btn[15:4],
-                             snac_is_analog ? (snac_p2_joy[7:0]  > 8'hC0) : snac_p2_btn[3],
-                             snac_is_analog ? (snac_p2_joy[7:0]  < 8'h40) : snac_p2_btn[2],
-                             snac_is_analog ? (snac_p2_joy[15:8] > 8'hC0) : snac_p2_btn[1],
-                             snac_is_analog ? (snac_p2_joy[15:8] < 8'h40) : snac_p2_btn[0]};
-    // snac_cont_assignment[1:0] is the configurator's "SNAC controller
-    // assignment": 0 SNAC->P1 (the handheld's own pad becomes P2), 1 SNAC->P2,
-    // 2 both SNAC pads in order, 3 both swapped. The analogue sticks are zeroed
-    // on a SNAC player: the stick is already folded into the d-pad bits above,
-    // and gamepad.sv would otherwise add its own idle-centre reading.
-    logic [31:0] pad1_key, pad1_joy, pad2_key, pad2_joy;
-    always_ff @(posedge clk_sys) begin
-        if (!analogizer_ena || snac_game_cont_type == 5'h0) begin
-            pad1_key <= cont1_key; pad1_joy <= cont1_joy;
-            pad2_key <= cont2_key; pad2_joy <= cont2_joy;
-        end else begin
-            case (snac_cont_assignment[1:0])
-                2'd0: begin pad1_key <= {16'd0, snac_pad1}; pad1_joy <= 32'd0;
-                            pad2_key <= cont1_key;          pad2_joy <= cont1_joy; end
-                2'd1: begin pad1_key <= cont1_key;          pad1_joy <= cont1_joy;
-                            pad2_key <= {16'd0, snac_pad1}; pad2_joy <= 32'd0;     end
-                2'd2: begin pad1_key <= {16'd0, snac_pad1}; pad1_joy <= 32'd0;
-                            pad2_key <= {16'd0, snac_pad2}; pad2_joy <= 32'd0;     end
-                2'd3: begin pad1_key <= {16'd0, snac_pad2}; pad1_joy <= 32'd0;
-                            pad2_key <= {16'd0, snac_pad1}; pad2_joy <= 32'd0;     end
-                default: begin pad1_key <= cont1_key; pad1_joy <= cont1_joy;
-                               pad2_key <= cont2_key; pad2_joy <= cont2_joy; end
-            endcase
-        end
-    end
+    // RndMnkIII's cartridge-slot adapter (docs/analogizer.md), set from this
+    // core's own menu: interact.json writes the adapter's settings word at
+    // 0xF7000000 and the picture position at 0xF7000004/8, and the wrapper at
+    // the foot of this file reads them back. key1..key4 are the Pocket's
+    // controller words with SNAC pads put in their place by the menu's
+    // assignment; with "Analogizer" off, the default, they are cont1..4_key.
+    // The adapter reports a pad in the Pocket's own bitmap, so a SNAC pad
+    // reaches the same A/B/X, Select and Start this core already reads.
+    wire [31:0] ana_bridge_rd_data;
+    wire        ana_pocket_off;
+    wire [31:0] key1, key2, key3, key4;
 
     // ---------------------------------------------------------- gamepads
     wire p1_up, p1_down, p1_left, p1_right, p1_btn_y, p1_btn_x, p1_btn_b, p1_btn_a;
@@ -416,8 +371,8 @@ module core_top
     wire m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6, m_btn7, m_btn8;
     gamepad #(.JOY_PADS(JOY_PADS), .JOY_ALT(JOY_ALT)) pocket_gamepad (
         .clk_sys(clk_sys),
-        .cont1_key(pad1_key), .cont1_joy(pad1_joy), .cont2_key(pad2_key), .cont2_joy(pad2_joy),
-        .cont3_key(cont3_key), .cont3_joy(cont3_joy), .cont4_key(cont4_key), .cont4_joy(cont4_joy),
+        .cont1_key(key1), .cont1_joy(cont1_joy), .cont2_key(key2), .cont2_joy(cont2_joy),
+        .cont3_key(key3), .cont3_joy(cont3_joy), .cont4_key(key4), .cont4_joy(cont4_joy),
         .p1_up(p1_up), .p1_down(p1_down), .p1_left(p1_left), .p1_right(p1_right),
         .p1_y(p1_btn_y), .p1_x(p1_btn_x), .p1_b(p1_btn_b), .p1_a(p1_btn_a),
         .p1_l1(p1_btn_l1), .p1_r1(p1_btn_r1), .p1_l2(p1_btn_l2), .p1_r2(p1_btn_r2), .p1_l3(p1_btn_l3), .p1_r3(p1_btn_r3),
@@ -530,7 +485,7 @@ module core_top
         .dbg_68k_halted(dbg_68k_halted), .dbg_68k_addr(dbg_68k_addr), .dbg_h8_run(dbg_h8_run), .dbg_h8_pc(dbg_h8_pc),
         .dbg_h8_istart(dbg_h8_istart), .dbg_h8_irq(dbg_h8_irq), .dbg_video_unsupported(dbg_vunsup), .dbg_video_unsup_src(dbg_vunsup_src), .dbg_gfxbank(dbg_gfxbank), .dbg_c352_overrun(dbg_c352_ovr)
     );
-    wire _unused_top = &{1'b0, snac_busy, p2_btn_y, p1_btn_y, scnl_sw, smask_sw, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
+    wire _unused_top = &{1'b0, p2_btn_y, p1_btn_y, scnl_sw, smask_sw, nv_rd_en, ga_hb, ga_vb, dbg_h8_pc, pause_req, nvclear_sw, ext_sw0, ext_sw1, ext_sw2, ext_sw3,
                          dip_sw0, dip_sw1, dip_sw2, dip_sw3, mod_sw2, mod_sw3, status, dataslot_requestread,
                          dataslot_requestread_id, dataslot_requestwrite_size, dataslot_update, dataslot_update_id,
                          dataslot_update_size, target_dataslot_err, cont1_trig, cont2_trig, cont3_trig, cont4_trig,
@@ -587,11 +542,13 @@ module core_top
     // hand the raster to the 6.4 MHz video clock domain: the core's pixel enable is
     // a fixed /15 of clk_sys and clk_vid is the PLL's clk_sys/15, so a registered
     // copy on clk_vid samples a stable pixel (the pixel changes once per 15 clocks)
-    // "Blank the Pocket Screen" in the Analogizer configuration file darkens the
-    // handheld's own panel while the analog output keeps the picture. It is a
-    // configuration bit, changing once at load, so it is read straight into this
-    // domain. The Analogizer's own copy of the raster is taken before this point.
-    wire      pocket_dark = pocket_blank_screen & analogizer_ena;
+    // "Analogizer: On, Pocket off" in the menu darkens the handheld's own panel
+    // while the analog output keeps the picture; the menu bit is brought into
+    // this domain with two flops. The Analogizer's own copy of the raster is
+    // taken before this point.
+    reg [1:0] poff_s = 2'b00;
+    always @(posedge clk_vid) poff_s <= {poff_s[0], ana_pocket_off};
+    wire      pocket_dark = poff_s[1];
     reg [7:0] vr_q, vg_q, vb_q;
     reg       vhs_q, vvs_q, vde_q;
     always @(posedge clk_vid) begin
@@ -665,6 +622,12 @@ module core_top
     // to 140 MHz) but not for the logic behind it -- at 96 MHz the hq2x blender
     // in the scandoubler misses setup by 1.3 ns, and 2,900 ALUTs of adapter on
     // the machine's own clock costs the rest of the design its placement.
+    // pocket_analogizer (target/pocket/, the template's) hands each pixel over
+    // two clk_sys clocks after cen_pix, when the overlay's output has settled,
+    // with a toggle; both clocks come off the same PLL, so the hand-over is a
+    // timed path. LINE_LEN is the whole line, blanking included, and
+    // sim/tb_analogizer.sv carries the same raster at its top: change the two
+    // together.
     generate
         if (USE_ANALOGIZER == 0) begin : g_no_analogizer
             // cart is unused, so set all level translators accordingly
@@ -676,114 +639,33 @@ module core_top
             assign cart_tran_pin30 = 1'b0;  assign cart_tran_pin30_dir = 1'bz;
             assign cart_pin30_pwroff_reset = 1'b0;
             assign cart_tran_pin31 = 1'bz;  assign cart_tran_pin31_dir = 1'b0;
-            assign analogizer_bridge_rd_data = 32'd0;
-            assign analogizer_ena            = 1'b0;
-            assign analogizer_video_type     = 4'd0;
-            assign snac_game_cont_type       = 5'd0;
-            assign snac_cont_assignment      = 4'd0;
-            assign pocket_blank_screen       = 1'b0;
-            assign snac_busy                 = 1'b0;
-            assign snac_p1_btn = 16'd0; assign snac_p2_btn = 16'd0;
-            assign snac_p1_joy = 32'd0; assign snac_p2_joy = 32'd0;
-            wire _unused_analogizer = &{1'b0, clk_analogizer, ga_cen_pix, ga_hb, ga_vb};
+            assign key1 = cont1_key; assign key2 = cont2_key;
+            assign key3 = cont3_key; assign key4 = cont4_key;
+            assign ana_bridge_rd_data = 32'd0;
+            assign ana_pocket_off     = 1'b0;
+            wire _unused_analogizer = &{1'b0, clk_analogizer, ga_hb, ga_vb};
         end
         else begin : g_analogizer
-            // The raster crosses from clk_sys into the adapter's clock the way
-            // it crosses into clk_vid for the Pocket's scaler: both come off the
-            // same PLL, so a plain registered copy is a timed path and not an
-            // asynchronous one. cen_pix is a single 96 MHz clock wide and would
-            // fall between two 32 MHz edges, so it travels as a toggle instead
-            // and becomes a one-clock enable again here; the toggle is stable
-            // for five of these clocks, one per dot.
-            reg        a_pix_tog = 1'b0;
-            always @(posedge clk_sys) if (ga_cen_pix) a_pix_tog <= ~a_pix_tog;
-            reg  [1:0] a_tog_s = 2'd0;
-            reg  [7:0] a_r, a_g, a_b;
-            reg        a_hs, a_vs, a_hb, a_vb, a_de;
-            always @(posedge clk_analogizer) begin
-                a_tog_s <= {a_tog_s[0], a_pix_tog};
-                a_r  <= ovl_r;  a_g  <= ovl_g;  a_b  <= ovl_b;
-                a_hs <= ga_hs;  a_vs <= ga_vs;  a_de <= ga_de;
-                a_hb <= ga_hb;  a_vb <= ga_vb;
-            end
-            wire a_ce_pix = a_tog_s[1] ^ a_tog_s[0];
-
-            // Y/C encoder constants, after Mike Simone's encoder
-            // (https://github.com/MikeS11/MiSTerFPGA_YC_Encoder): the colour
-            // subcarrier as a fraction of the encoder clock in Q0.40, and the
-            // colourburst window in encoder clocks from the start of hsync.
-            // At 32 MHz that is 122992229676 / 152337980273 and 33..113 / 33..105.
-            localparam NTSC_REF  = 3.579545;         // MHz
-            localparam PAL_REF   = 4.43361875;       // MHz
-            localparam CLK_VIDEO = 32.0;             // MHz, clk_analogizer
-            localparam [39:0] NTSC_PHASE_INC = (NTSC_REF * 1099511627776.0) / CLK_VIDEO;
-            localparam [39:0] PAL_PHASE_INC  = (PAL_REF  * 1099511627776.0) / CLK_VIDEO;
-            localparam  [6:0] BURST_START    = (3.7 * (CLK_VIDEO / NTSC_REF));
-            localparam  [9:0] BURST_NTSC_END = (9.0 * (CLK_VIDEO / NTSC_REF)) + BURST_START;
-            localparam  [9:0] BURST_PAL_END  = (10.0 * (CLK_VIDEO / PAL_REF)) + BURST_START;
-
-            // The ND-1 is 60 Hz NTSC hardware and has no PAL mode of its own.
-            // Picking "Y/C PAL" in the configurator is a statement about the
-            // television, not the machine, so it is the only thing that sets
-            // PAL encoding: the raster itself is unchanged.
-            wire        yc_pal = (analogizer_video_type == 4'h4);
-            wire [39:0] chroma_phase_inc = yc_pal ? PAL_PHASE_INC : NTSC_PHASE_INC;
-            wire [26:0] colorburst_range = {BURST_START, BURST_NTSC_END, BURST_PAL_END};
-
-            openFPGA_Pocket_Analogizer #(
-                .MASTER_CLK_FREQ(32_000_000),
-                .LINE_LENGTH(512),                       // 414 dots a line, rounded up
-                .ADDRESS_ANALOGIZER_CONFIG(ADDRESS_ANALOGIZER_CONFIG)
-            ) analogizer (
-                .clk_74a(clk_74a),
-                .i_clk(clk_analogizer),
-                .i_rst_apf(~reset_n),                    // active high, clk_74a domain
-                .i_rst_core(core_reset),
-                // video, ahead of the Pocket's own blanking switch
-                .video_clk(clk_analogizer),
-                .ce_pix(a_ce_pix),
-                .R(a_r), .G(a_g), .B(a_b),
-                .DE(a_de), .Hblank(a_hb), .Vblank(a_vb),
-                .Hsync(a_hs), .Vsync(a_vs),
-                // APF bridge: data slot 10 lands the configuration file at 0xF7000000
-                .bridge_endian_little(bridge_endian_little),
-                .bridge_addr(bridge_addr), .bridge_rd(bridge_rd),
-                .analogizer_bridge_rd_data(analogizer_bridge_rd_data),
+            pocket_analogizer #(.CLK_HZ(32_000_000), .LINE_LEN(414)) u_analogizer (
+                .clk_74a(clk_74a), .clk(clk_analogizer), .rst(core_reset),
+                .clk_src(clk_sys), .src_pix_ce(ga_cen_pix),
+                .src_rgb({ovl_r, ovl_g, ovl_b}),
+                .src_hs(ga_hs), .src_vs(ga_vs), .src_hb(ga_hb), .src_vb(ga_vb),
+                .bridge_addr(bridge_addr),
+                .bridge_rd(bridge_rd), .bridge_rd_data(ana_bridge_rd_data),
                 .bridge_wr(bridge_wr), .bridge_wr_data(bridge_wr_data),
-                // decoded settings
-                .analogizer_ena_out(analogizer_ena),
-                .snac_game_cont_type_out(snac_game_cont_type),
-                .snac_cont_assignment_out(snac_cont_assignment),
-                .analogizer_video_type_out(analogizer_video_type),
-                .SC_fx_out(),
-                .pocket_blank_screen_out(pocket_blank_screen),
-                .analogizer_osd_out(),
-                // Y/C encoder
-                .CHROMA_PHASE_INC(chroma_phase_inc),
-                .COLORBURST_RANGE(colorburst_range),
-                .CHROMA_ADD(5'd0), .CHROMA_MUL(5'd0),
-                .PALFLAG(yc_pal),
-                // SVGA scandoubler: the adapter picks it per video mode
-                .scandoubler(1'b1),
-                // SNAC
-                .p1_btn_state(snac_p1_btn), .p1_joy_state(snac_p1_joy),
-                .p2_btn_state(snac_p2_btn), .p2_joy_state(snac_p2_joy),
-                .p3_btn_state(), .p4_btn_state(),
-                .i_VIB_SW1(2'b00), .i_VIB_DAT1(8'd0),    // no rumble: the ND-1 has none
-                .i_VIB_SW2(2'b00), .i_VIB_DAT2(8'd0),
-                .busy(snac_busy),
-                // the cartridge port
+                .cont1_key(cont1_key), .cont2_key(cont2_key),
+                .cont3_key(cont3_key), .cont4_key(cont4_key),
+                .key1(key1), .key2(key2), .key3(key3), .key4(key4),
+                .ena(), .pocket_off(ana_pocket_off),
+                .ps2_code_new(), .ps2_code(),          // no keyboard on an arcade board
                 .cart_tran_bank2(cart_tran_bank2), .cart_tran_bank2_dir(cart_tran_bank2_dir),
                 .cart_tran_bank3(cart_tran_bank3), .cart_tran_bank3_dir(cart_tran_bank3_dir),
                 .cart_tran_bank1(cart_tran_bank1), .cart_tran_bank1_dir(cart_tran_bank1_dir),
                 .cart_tran_bank0(cart_tran_bank0), .cart_tran_bank0_dir(cart_tran_bank0_dir),
                 .cart_tran_pin30(cart_tran_pin30), .cart_tran_pin30_dir(cart_tran_pin30_dir),
                 .cart_pin30_pwroff_reset(cart_pin30_pwroff_reset),
-                .cart_tran_pin31(cart_tran_pin31), .cart_tran_pin31_dir(cart_tran_pin31_dir),
-                // no PS/2 keyboard or mouse on an arcade board
-                .DBG_TX(), .o_stb(),
-                .o_ps2_code_new(), .o_ps2_code(),
-                .o_mouse_clk(), .o_mouse_dat()
+                .cart_tran_pin31(cart_tran_pin31), .cart_tran_pin31_dir(cart_tran_pin31_dir)
             );
         end
     endgenerate

@@ -75,12 +75,12 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	input  wire i_clk,
 	input  wire i_rst_apf, //active High
     input  wire i_rst_core,//active High
+	//input  wire i_ena, //active High
 	//Video interface
 	input  wire video_clk,
 	input  wire [7:0] R,
 	input  wire [7:0] G,
 	input  wire [7:0] B,
-	input  wire DE,
 	input  wire Hblank,
 	input  wire Vblank,
 	input  wire Hsync,
@@ -147,9 +147,13 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 	//PS/2 Keyboard SNAC interface decoded
     output wire       o_ps2_code_new,
     output wire [7:0] o_ps2_code, 
-     //PS/2 Mouse SNAC raw interface
-    output wire o_mouse_clk,  //pin31    (MCLK)
-    output wire o_mouse_dat   //bank0[5] (MDAT)
+     //PS/2 Mouse SNAC interface decoded
+    output wire              o_mouse_valid,
+    output wire [2:0]        o_mouse_btn,
+    output wire signed [8:0] o_mouse_dx,
+    output wire signed [8:0] o_mouse_dy,
+    output wire signed [4:0] o_mouse_dz,
+    output wire              o_mouse_ready
 );
 
 	//Configuration file dat
@@ -204,6 +208,7 @@ module openFPGA_Pocket_Analogizer #(parameter MASTER_CLK_FREQ=50_000_000, parame
 
   always @(posedge i_clk) begin
 	analogizer_ena        <= analogizer_config_s[5];
+	//analogizer_ena        <= i_ena;
     snac_game_cont_type   <= analogizer_config_s[4:0];
     snac_cont_assignment  <= analogizer_config_s[9:6];
     analogizer_video_type <= analogizer_config_s[13:10];	
@@ -276,9 +281,18 @@ assign analogizer_osd_out        = analogizer_osd_out2;
 		//debug
 		.DBG_TX(DBG_TX),
     	.o_stb(o_stb),
+
 		//PS/2 Keyboard SNAC: scancodes
 		.o_ps2_code_new(o_ps2_code_new),
-		.o_ps2_code(o_ps2_code)
+		.o_ps2_code(o_ps2_code),
+		
+		//PS/2 Mouse SNAC: decoded mouse data
+		.o_mouse_valid(o_mouse_valid),
+		.o_mouse_btn  (o_mouse_btn),
+		.o_mouse_dx   (o_mouse_dx),
+		.o_mouse_dy   (o_mouse_dy),
+		.o_mouse_dz   (o_mouse_dz),
+		.o_mouse_ready(o_mouse_ready)
 	); 
 
 
@@ -332,7 +346,7 @@ end
 				Bout = B_fix[7:2]&{6{ANALOGIZER_DE}};
 				HsyncOut = ANALOGIZER_CSYNC;
 				VsyncOut = 1'b1;
-				BLANKnOut = DE; //ANALOGIZER_DE;
+				BLANKnOut = ANALOGIZER_DE;
 			end
 			4'h3, 4'h4: begin// Y/C Modes works for Analogizer R1, R2 Adapters
 				Rout = yc_o[23:18];
@@ -500,9 +514,6 @@ scanlines_analogizer #(0) VGA_scanlines
 	assign cart_tran_pin31         = i_rst_apf | ~analogizer_ena ? 1'bz : ((CART_PIN31_DIR) ? CART_PIN31_OUT : 1'bZ); //on reset state set ouput value to 4'hf
 	assign cart_tran_pin31_dir     = i_rst_apf | ~analogizer_ena ? 1'b0 : CART_PIN31_DIR;                            //on reset state set pin dir to input
 	assign CART_PIN31_IN           = cart_tran_pin31;
-	//--- PS/2 Mouse (holder) ---
-	assign o_mouse_clk = cart_tran_pin31;    //MCLK
-	assign o_mouse_dat = cart_tran_bank0[5]; //MDAT
 endmodule
 
 module sync_fix

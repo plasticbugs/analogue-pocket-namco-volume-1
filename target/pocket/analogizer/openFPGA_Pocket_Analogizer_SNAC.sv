@@ -108,9 +108,17 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     output wire [3:0] DBG_TX,
     output wire o_stb,
 
-    //PS/2 interface
+    //PS/2 Keyboard interface decoded
     output wire  o_ps2_code_new,
-    output wire [7:0] o_ps2_code
+    output wire [7:0] o_ps2_code,
+
+    //PS/2 Mouse interface decoded
+    output wire              o_mouse_valid,
+    output wire [2:0]        o_mouse_btn,
+    output wire signed [8:0] o_mouse_dx,
+    output wire signed [8:0] o_mouse_dy,
+    output wire signed [4:0] o_mouse_dz,
+    output wire              o_mouse_ready
     
 ); 
     //
@@ -124,6 +132,11 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     logic SNAC_IO6_A ;//Conf.A: pin31(in),                Conf.B: pin31(out)         TX-
     logic SNAC_IO6_B ;//Conf.A: pin31(in),                Conf.B: pin31(out)         TX-
     logic SNAC_IN7 ;   //cart_tran_bank0[5]                                          TX+
+
+    wire mouse_clk_oe;
+    wire mouse_dat_oe;
+    wire mouse_busy;    //=~init_done|runtime  (frozen keyboard and SERLAT game controller interface).
+
     
     //calculate step sizes for fract clock enables
     // localparam pce_compat_polling_freq    =  20_000; //  20_000 / 5 =   4K samples/sec PCE
@@ -322,14 +335,18 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     always @(posedge i_clk) begin
         case (conf_AB)         
             CONF_A: begin
-                CART_BK0_DIR                   <= 1'b0;                                           //INPUT
-                {SNAC_IN4,SNAC_IN7,SNAC_IO3_A} <= {CART_BK0_IN[7],CART_BK0_IN[5],CART_BK0_IN[4]}; //OUTPUT
-                CART_BK1_OUT_P76                <= {SNAC_OUT2,SNAC_OUT1};                          //OUTPUT 
-                CART_PIN30_DIR                 <= ps2_group ? 1'b0 : 1'b1;                                            //OUTPUT 
-                CART_PIN30_OUT                 <= SNAC_IO5_A; 
-                CART_PIN31_DIR                 <= 1'b0;                                           //INPUT
-                SNAC_IO6_A                     <= CART_PIN31_IN;  
-            end 
+                //bank0: input by default, with PS/2 mouse commute it for MDAT (bank0[5])
+                CART_BK0_DIR                   <= ps2_group ? mouse_dat_oe : 1'b0;
+                CART_BK0_OUT                   <= 4'b0000;   // simulated open-drain
+                {SNAC_IN4,SNAC_IN7,SNAC_IO3_A} <= {CART_BK0_IN[7],CART_BK0_IN[5],CART_BK0_IN[4]};
+                CART_BK1_OUT_P76               <= {SNAC_OUT2,SNAC_OUT1};
+                CART_PIN30_DIR                 <= ps2_group ? 1'b0 : 1'b1;   // KCLK for PS/2 keyboard
+                CART_PIN30_OUT                 <= SNAC_IO5_A;
+                //pin31(MCLK): PS/2 mouse commute it to output while is inhibited.
+                CART_PIN31_DIR                 <= ps2_group ? mouse_clk_oe : 1'b0;
+                CART_PIN31_OUT                 <= 1'b0;      // simulated open-drain
+                SNAC_IO6_A                     <= CART_PIN31_IN;
+            end
             CONF_B: begin 
                 CART_BK0_DIR                    <= 1'b0;                                           //INPUT
                 {SNAC_IN4,SNAC_IO5_B,SNAC_IN7} <= {CART_BK0_IN[7],CART_BK0_IN[6],CART_BK0_IN[5]}; //OUTPUT
@@ -414,7 +431,7 @@ module openFPGA_Pocket_Analogizer_SNAC #(parameter MASTER_CLK_FREQ=50_000_000)
     serlatch_game_controller #(.MASTER_CLK_FREQ(MASTER_CLK_FREQ)) slgc
     (
         .i_clk(i_clk),
-        .i_rst(reset_on_change),
+        .i_rst(reset_on_change | mouse_busy),
         .game_controller_type(serlat_type),
         .i_stb(stb_clk),
         .p1_btn_state(sl_p1),
@@ -563,22 +580,56 @@ pcengine_game_controller_multitap #(.MASTER_CLK_FREQ(MASTER_CLK_FREQ)) pcegmutit
     end
 
     //=========================================================================
-    // PS/2 KeyboardSNAC
+    // PS/2 Keyboard SNAC
     // Generic ps2_keyboard with debounce: returns scancode
     //   KCLK = CART_PIN30_IN   (pin30)
     //   KDAT = CART_BK0_IN[7]  (bank0[7])
     //=========================================================================
     // debounce ~11-12 us: 2^size/CLK ~ 12us
-    localparam int PS2_DEBOUNCE_SIZE = $clog2(MASTER_CLK_FREQ / 200_000); //85_000 slow clk keyboards, for fast as the Hewlett Packard try 200_000
+    localparam int PS2_DEBOUNCE_SIZE = $clog2(MASTER_CLK_FREQ / 85_000);
+
+    wire kbd_code_new_i;
 
     ps2_keyboard #(
         .clk_freq              (MASTER_CLK_FREQ),
         .debounce_counter_size (PS2_DEBOUNCE_SIZE)
     ) ps2_kbd_snac (
-        .clk          (i_clk),
-        .ps2_clk      (CART_PIN30_IN),   // KCLK
-        .ps2_data     (CART_BK0_IN[7]),  // KDAT
-        .ps2_code_new (o_ps2_code_new),
-        .ps2_code     (o_ps2_code)
-    );
+    .clk      (i_clk),
+    .ps2_clk  (ps2_group ? CART_PIN30_IN : 1'b1),   // idle-high: sin flancos en SNES
+    .ps2_data (ps2_group ? CART_BK0_IN[7] : 1'b1),
+    .ps2_code_new (kbd_code_new_i),
+    .ps2_code     (o_ps2_code)
+);
+    
+    assign o_ps2_code_new = kbd_code_new_i & ~mouse_busy;
+
+
+    //=========================================================================
+    // PS/2 Mouse SNAC
+    //   MCLK = CART_PIN31_IN (pin31, inidividual dir)
+    //   MDAT = CART_BK0_IN[5] (bank0[5], shared dir)
+    //=========================================================================
+//    ps2_mouse #(
+//        .CLK_HZ       (MASTER_CLK_FREQ),
+//        .ENABLE_WHEEL (1'b1)
+//    ) ps2_mouse_snac (
+//        .clk        (i_clk),
+//        .rst        (i_rst | ~ps2_group),   // solo activo en configs K&M (0xC..0xF)
+//        .ps2_clk_i  (CART_PIN31_IN),        // MCLK
+//        .ps2_dat_i  (CART_BK0_IN[5]),       // MDAT
+//        .ps2_clk_oe (mouse_clk_oe),         // -> CART_PIN31_DIR (ver edit 3)
+//        .ps2_dat_oe (mouse_dat_oe),         // -> CART_BK0_DIR   (ver edit 3)
+//        .bus_req    (mouse_busy),           // congela teclado/SERLAT
+//        .bus_grant  (1'b1),                 // unico transmisor del banco
+//        .bus_busy   (1'b0),
+//        .cmd_wr(1'b0), .cmd_din(8'h00), .cmd_ready(), .cmd_done(), .cmd_ack(),
+//        .init_done  (o_mouse_ready),
+//        .has_wheel  (),
+//        .mouse_valid(o_mouse_valid),
+//        .btn        (o_mouse_btn),
+//        .dx         (o_mouse_dx),
+//        .dy         (o_mouse_dy),
+//        .dz         (o_mouse_dz),
+//        .x_ovf(), .y_ovf()
+//    );
 endmodule
