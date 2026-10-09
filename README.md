@@ -17,8 +17,9 @@ runs both and the Pocket lists them by name.
   <img src="docs/images/vol2-title.png" width="224" alt="Namco Classic Collection Vol.2 title screen">
 </p>
 
-**Status: released** (v0.2.1); the `analogizer` branch adds Analogizer support
-and is in test as `v0.3.0-alpha.1`. Every block is verified against MAME in
+**Status: released** (v0.2.1); the `analogizer` branch adds Analogizer support,
+first put out for testing as `v0.3.0-alpha.1` (settings from `analogizer.bin`)
+and now set from the core's menu. Every block is verified against MAME in
 simulation (below) with both collections, and the core runs on a Pocket.
 
 ## What is in the box
@@ -94,9 +95,11 @@ The core supports RndMnkIII's [Analogizer](https://github.com/RndMnkIII/Analogiz
 cart-slot adapter: analog video (RGBS, RGsB, YPbPr, Y/C, SVGA scandoubler) out
 of the cartridge port and SNAC controllers in. The analog output is the board's
 own 288x224 raster at 15.46 kHz and 59.92 Hz, unrotated, so a CRT has to be
-turned as the cabinet's was. Settings come from
-`Assets/analogizer/common/analogizer.bin`, shared with every other Analogizer
-core on the card. **Untested**: nobody here owns an adapter. `docs/analogizer.md`
+turned as the cabinet's was. It is set up in the core's own menu (Analogizer,
+Analogizer Video, SNAC Adapter, SNAC Assignment, and H and V Position to
+centre the picture on the CRT); with "Analogizer" off, the default, the core
+is unchanged, and no `analogizer.bin` is needed. **Not yet tried with this
+core** (the same adapter code works in the Moo Mesa core). `docs/analogizer.md`
 has the details, including the warning that this turns cartridge-slot power on
 for every user of the core.
 
@@ -192,7 +195,9 @@ MAME's device models, one vendored CPU core, and the Pocket's platform layer.
   Agreement and EULA, not under the GPL/MIT terms above.
 * `target/pocket/analogizer/` is the
   [Analogizer](https://github.com/RndMnkIII/Analogizer) adapter interface by
-  **RndMnkIII**, carried across unmodified. It in turn contains work from the
+  **RndMnkIII**, carried across unmodified (from his MiraxPocket core, commit
+  `9dfdd2b`); `target/pocket/pocket_analogizer.sv`, the wrapper around it, is
+  from plasticbugs' Pocket core template. It in turn contains work from the
   MiST project (scandoubler), the MiSTer project (YPbPr, hq2x) and
   **Mike Simone**'s [Y/C encoder](https://github.com/MikeS11/MiSTerFPGA_YC_Encoder).
 * `target/pocket/sdram_ctrl.sv`'s pin-level timing (CL2, read data captured at
