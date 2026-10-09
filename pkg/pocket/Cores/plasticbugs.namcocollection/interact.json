@@ -161,6 +161,16 @@
         "address": "0xF7000008",
         "defaultval": 0,
         "graphical": {"signed": true, "min": -24, "max": 2, "adjust_small": 1, "adjust_large": 4}
+      },
+      {
+        "name": "Analogizer H Size",
+        "id": 76,
+        "type": "slider_u32",
+        "enabled": true,
+        "persist": true,
+        "address": "0xF700000C",
+        "defaultval": 0,
+        "graphical": {"signed": true, "min": -20, "max": 20, "adjust_small": 1, "adjust_large": 5}
       }
     ],
     "messages": []

@@ -41,7 +41,7 @@ module  core_pll_0002(
 		.phase_shift2("44270 ps"),
 		.duty_cycle2(50),
 		.output_clock_frequency3("96.000000 MHz"),
-		.phase_shift3("5990 ps"),
+		.phase_shift3("6120 ps"),
 		.duty_cycle3(50),
 		// outclk_4 is the Analogizer's clock (core_top.sv). 32 MHz is 96/3 and
 		// 6.4 x 5, so it is phase-locked to both the system and dot clocks off

@@ -36,7 +36,8 @@ So this checks the things the firmware cares about and a parser does not:
   * an Analogizer core's menu and package agree (docs/analogizer.md): its
     interact.json entries at 0xF7000000 each write only inside their
     mask, one of them sets the enable (bit 5), the picture-position
-    sliders at 0xF7000004/8 fit the 8 signed bits read, no data slot also writes
+    sliders at 0xF7000004/8 and the width slider at 0xF700000C fit the 8
+    signed bits read, no data slot also writes
     0xF7000000 (a file loaded there would overwrite the menu's word), and
     the cartridge port is powered.  Any of those wrong and the Pocket loads
     the core happily while the adapter stays dark or ignores the menu.
@@ -273,15 +274,18 @@ def main(argv):
             a = str(v.get('address', '')).lower()
             if not a.startswith('0xf70000') or a == '0xf7000000':
                 continue
-            if a not in ('0xf7000004', '0xf7000008'):
+            if a not in ('0xf7000004', '0xf7000008', '0xf700000c'):
                 fault(ij, f'{v.get("name")!r} writes {v.get("address")}; the Analogizer '
-                          f'reads only 0xF7000000, 0xF7000004 and 0xF7000008')
+                          f'reads only 0xF7000000, 0xF7000004, 0xF7000008 and 0xF700000C')
                 continue
             g = v.get('graphical', {})
             if (v.get('type') != 'slider_u32' or not g.get('signed')
                     or not -127 <= g.get('min', 0) <= 0 <= g.get('max', 0) <= 127):
-                fault(ij, f'{v.get("name")!r}: a picture position is a signed slider '
-                          f'from -127..0 to 0..127 (pocket_analogizer reads 8 bits)')
+                fault(ij, f'{v.get("name")!r}: a picture position or width is a signed '
+                          f'slider from -127..0 to 0..127 (pocket_analogizer reads 8 bits)')
+            if a == '0xf700000c' and g.get('min', 0) < -50:
+                fault(ij, f'{v.get("name")!r}: a width below -50% would skip more than '
+                          f'every other dot')
         if ana and not enable:
             fault(ij, 'no Analogizer entry sets the enable (bit 5 of 0xF7000000): '
                       'the adapter would never turn on')

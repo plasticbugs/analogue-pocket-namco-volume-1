@@ -19,6 +19,10 @@
 //     is right) and 0xF7000008 (vertical, + is down), move the picture on
 //     the CRT, in dots and lines, by moving the syncs.  The core's own
 //     range for them is set in interact.json, from its blanking.
+//   * A third, at 0xF700000C (percent, + wider), scales the width of the
+//     15 kHz picture about its centre: each line is played back one line
+//     later from a line buffer, a little faster or slower.  For a core whose
+//     CRT stands on its side (a vertical game) that is the game's height.
 //   * The picture is handed over from the core's clock to `clk`, the
 //     Analogizer's, one pixel per `src_pix_ce`.  `clk` also clocks the DAC
 //     through the cartridge port, so keep it at 48 MHz or so (the rate the
@@ -126,21 +130,30 @@ module pocket_analogizer #(
     // --------------------------------------------------- the settings words
     // as the menu last wrote them, for the firmware to read back (header):
     // 0xF7000000 the adapter's word, 0xF7000004 and 0xF7000008 the picture
-    // position (below).  The adapter module keeps its own copy of the last
-    // two in a table it never reads.
-    logic [31:0] menu_word, pos_h, pos_v;
-    initial begin menu_word = 32'h0; pos_h = 32'h0; pos_v = 32'h0; end
+    // position, 0xF700000C its width (below).  The adapter module keeps its
+    // own copy of the last three in a table it never reads.
+    logic [31:0] menu_word, pos_h, pos_v, size_h;
+    initial begin menu_word = 32'h0; pos_h = 32'h0; pos_v = 32'h0; size_h = 32'h0; end
     always @(posedge clk_74a)
         if (bridge_wr && bridge_addr[31:24] == 8'hF7)
             case (bridge_addr[3:0])
                 4'h0: menu_word <= bridge_wr_data;
                 4'h4: pos_h     <= bridge_wr_data;
                 4'h8: pos_v     <= bridge_wr_data;
+                4'hC: size_h    <= bridge_wr_data;
                 default: ;
             endcase
     assign bridge_rd_data = (bridge_addr[3:0] == 4'h0) ? menu_word :
                             (bridge_addr[3:0] == 4'h4) ? pos_h :
-                            (bridge_addr[3:0] == 4'h8) ? pos_v : 32'h0;
+                            (bridge_addr[3:0] == 4'h8) ? pos_v :
+                            (bridge_addr[3:0] == 4'hC) ? size_h : 32'h0;
+
+    // the width slider and the video mode, which the position stage needs too
+    wire [3:0] a_video_type;
+    logic [7:0] size_m, size_q;
+    always_ff @(posedge clk) begin size_m <= size_h[7:0]; size_q <= size_m; end
+    wire signed [7:0] sz = size_q;
+    wire        sz_on = (sz != 8'sd0) && (a_video_type < 4'h5);  // 15 kHz modes only
 
     // ------------------------------------------------- picture position
     // The menu's two sliders (header) move the picture on the CRT by moving
@@ -188,7 +201,9 @@ module pocket_analogizer #(
     wire [10:0] vl_now = v_rise ? 11'd0 : vl + 11'(vd_wrap);
     wire [19:0] fc_now = v_rise ? 20'd0 : fc + 20'd1;
     wire [11:0] h_at = (dh > 0) ? line_len - 12'(dh) : 12'(-dh);
-    wire [10:0] v_at = (dv > 0) ? frame_lines - 11'(dv) : 11'(-dv);
+    wire [10:0] v_pos = (dv > 0) ? frame_lines - 11'(dv) : 11'(-dv);
+    // with the width stage on, the picture comes a line late: so does vsync
+    wire [10:0] v_at = !sz_on ? v_pos : (v_pos + 11'd1 == frame_lines) ? 11'd0 : v_pos + 11'd1;
 
     always @(posedge clk) begin     // not always_ff, which may not share the initial block
         b_ce  <= a_ce;
@@ -215,12 +230,166 @@ module pocket_analogizer #(
             end
             else if (o_vcnt != 20'd0) o_vcnt <= o_vcnt - 20'd1;
             else o_vs <= 1'b0;
-            if (dh == 8'sd0) o_hs <= a_hs;
-            if (dv == 8'sd0) o_vs <= a_vs;
+            // At 0 each sync is the source's, under the same off-time rule:
+            // a large slider step to 0 would otherwise put the source's
+            // vsync a line after the last re-made one (found on Time Pilot,
+            // whose vsync is 3 lines and whose large step is 4)
+            if (dh == 8'sd0) begin
+                if (h_rise) o_hs <= o_hs || (o_hgap > hs_len);
+                else if (!a_hs) o_hs <= 1'b0;
+            end
+            if (dv == 8'sd0 && !sz_on) begin
+                if (v_rise) o_vs <= o_vs || (o_vgap > vs_len);
+                else if (!a_vs) o_vs <= 1'b0;
+            end
         end
     end
     wire [7:0] b_r = b_pix[27:20], b_g = b_pix[19:12], b_b = b_pix[11:4];
     wire       b_hb = b_pix[1], b_vb = b_pix[0];
+
+    // ------------------------------------------------- picture width
+    // Each line's dots go into a two-line buffer as they come, six bits a
+    // channel (the DAC's), and the line before is read back during this
+    // one, A * (100 + sz) / 100 clocks long where it was A, centred where it
+    // was: nearest dot, stepping step = dots / clocks (20 fractional bits,
+    // from a divider that runs once a line) every clock.  The measures are
+    // the previous line's, so a line's geometry is never used while it is
+    // being taken.  Vblank comes a line late with the picture, and vsync
+    // too (position stage); hsync, the same every line, does not move.
+    // Off, or in a scandoubler mode, everything passes through as it was,
+    // one clock later.  The range is the menu's: interact.json keeps the
+    // picture clear of hsync and of the Y/C colour burst after it.
+    localparam int XW = $clog2(LINE_LEN);
+    logic [17:0] lbuf [0:(2 << XW) - 1];
+    logic [17:0] l_q;
+    logic        s_hs_p, s_hb_p, wsel, vb_w, vb_r;
+    logic [13:0] tc, act_s, act_e;          // clocks from the source hsync's rise
+    logic [XW-1:0] wx, wdots;               // dots written; the last line's count
+    initial begin
+        {s_hs_p, s_hb_p, wsel, vb_w} = '0; vb_r = 1'b1;
+        {tc, act_s, act_e} = '0; {wx, wdots} = '0;
+    end
+    wire s_hs = b_pix[3], s_hb = b_pix[1], s_vb = b_pix[0];
+    wire s_rise = s_hs && !s_hs_p;
+    wire l_we = b_ce && !s_hb;
+    always @(posedge clk) begin     // not always_ff, which may not share the initial block
+        s_hs_p <= s_hs;
+        s_hb_p <= s_hb;
+        tc <= s_rise ? 14'd0 : tc + 14'd1;
+        if (s_rise) begin wsel <= ~wsel; vb_r <= vb_w; end
+        if (!s_hb && s_hb_p) begin act_s <= tc; vb_w <= s_vb; end
+        if (s_hb && !s_hb_p) begin act_e <= tc; wdots <= wx; wx <= '0; end
+        else if (l_we) wx <= wx + 1'd1;
+    end
+
+    // the output's length and start, from the last line
+    wire [13:0] act_a = act_e - act_s;
+    logic [34:0] w_prod;
+    logic [14:0] w_out;                     // the scaled length, in clocks
+    logic signed [16:0] w_start;
+    always_ff @(posedge clk) begin
+        w_prod  <= 35'(act_a) * 35'(8'sd100 + sz) * 35'd10486;    // / 100 = * 10486 / 2^20
+        w_out   <= 15'(w_prod >> 20);
+        w_start <= $signed({3'b0, act_s}) + (($signed({3'b0, act_a}) - $signed({2'b0, w_out})) >>> 1);
+    end
+    // step = (wdots << 20) / w_out: restoring, 32 clocks, restarted every line
+    logic [31:0] dv_n, dv_qt, dv_r, step_u;
+    logic [5:0]  dv_i;
+    logic signed [16:0] start_u;
+    logic [XW-1:0] dots_u;
+    initial begin {dv_n, dv_qt, dv_r, step_u} = '0; dv_i = '0; start_u = '0; dots_u = '0; end
+    wire [32:0] dv_t = {dv_r, dv_n[31]};
+    always @(posedge clk) begin     // not always_ff, which may not share the initial block
+        if (s_rise) begin
+            step_u  <= dv_qt;               // the last line's quotient
+            start_u <= w_start;
+            dots_u  <= wdots;
+            dv_n    <= 32'(wdots) << 20;
+            dv_r    <= '0;
+            dv_i    <= 6'd32;
+        end else if (dv_i != 6'd0) begin
+            dv_n <= dv_n << 1;
+            dv_i <= dv_i - 6'd1;
+            if (dv_t >= 33'(w_out)) begin dv_r <= 32'(dv_t - 33'(w_out)); dv_qt <= {dv_qt[30:0], 1'b1}; end
+            else                    begin dv_r <= dv_t[31:0];             dv_qt <= {dv_qt[30:0], 1'b0}; end
+        end
+    end
+
+    // read back: from start_u, a dot index that advances step_u a clock, to
+    // the line's last dot -- past the source's next hsync if the line is
+    // stretched that far (H Position may have moved the output's later), so
+    // the buffer and vblank are those latched at the start
+    logic [20+XW:0] acc;
+    logic        rd_on, c_on, rsel, vb_s;
+    initial begin acc = '0; {rd_on, c_on, rsel} = '0; vb_s = 1'b1; end
+    wire [XW:0] rx = acc[20+XW:20];
+    wire        rd_act = rd_on && (rx < {1'b0, dots_u});
+
+    // Never into a sync: where the picture would reach hsync, or the colour
+    // burst after it (H Position and H Size together can ask for that), it
+    // is cropped instead.  Hsync's place in the line is the line before's,
+    // like everything else here; KEEP_CB is the burst's end (CB_NTSC, the
+    // later of the two) with a few clocks to spare either side.
+    localparam int KEEP_CB = int'((64'(CLK_HZ) * 64'd11176 + 64'd1575000000) / 64'd3150000000) + 4;
+    logic        ko_hs_p, ko_in;
+    logic [13:0] ko_r, ko_f, line_c;        // hsync's rise and fall, and the line, in clocks
+    initial begin {ko_hs_p, ko_in} = '0; {ko_r, ko_f, line_c} = '0; end
+    wire [13:0] ko_len = ((ko_f >= ko_r) ? ko_f - ko_r : ko_f + line_c - ko_r) + 14'(8 + KEEP_CB);
+    wire [14:0] ko_x0  = {1'b0, tc} + {1'b0, line_c} - {1'b0, ko_r} + 15'd4;
+    wire [14:0] ko_x1  = (ko_x0 >= {1'b0, line_c}) ? ko_x0 - {1'b0, line_c} : ko_x0;
+    wire [14:0] ko_x   = (ko_x1 >= {1'b0, line_c}) ? ko_x1 - {1'b0, line_c} : ko_x1;
+    always @(posedge clk) begin     // not always_ff, which may not share the initial block
+        ko_hs_p <= o_hs;
+        if (s_rise) line_c <= tc + 14'd1;
+        if (o_hs && !ko_hs_p) ko_r <= tc;
+        if (!o_hs && ko_hs_p) ko_f <= tc;
+        ko_in <= (ko_x < {1'b0, ko_len});
+    end
+    wire        rd_show = rd_act && !ko_in;
+    always @(posedge clk) begin     // not always_ff, which may not share the initial block
+        if ($signed({3'b0, tc}) == start_u) begin
+            rd_on <= 1'b1; acc <= '0; rsel <= ~wsel; vb_s <= vb_r;
+        end
+        else if (rd_on && !rd_act) rd_on <= 1'b0;    // past the last dot
+        else if (rd_on) acc <= acc + (21+XW)'(step_u);
+        c_on <= rd_show;
+    end
+    always @(posedge clk) begin
+        if (l_we) lbuf[{wsel, wx}] <= {b_r[7:2], b_g[7:2], b_b[7:2]};
+        l_q <= lbuf[{rsel, rx[XW-1:0]}];
+    end
+
+    // to the adapter, one clock after the stages above either way
+    logic        c_ce, c_hs, c_vs, c_hb, c_vb;
+    logic [23:0] c_rgb;
+    logic [XW:0] c_rx;
+    always_ff @(posedge clk) begin
+        c_ce  <= b_ce;
+        c_hs  <= o_hs;
+        c_vs  <= o_vs;
+        c_hb  <= sz_on ? !rd_show : b_hb;
+        c_vb  <= sz_on ? vb_s : b_vb;
+        c_rgb <= {b_r, b_g, b_b};
+        c_rx  <= rx;
+    end
+    // The adapter takes everything -- colour, blanks, syncs -- on the rising
+    // edge of its pixel enable only.  Scaled, the enable is a one-clock pulse
+    // whenever any of them changes, so each lands on its own clock; one that
+    // would follow a pulse directly waits a clock, to leave the edge it needs.
+    logic        p_chs, p_cvs, p_chb, p_cvb, w_ce, w_pend;
+    logic [XW:0] p_crx;
+    initial {p_chs, p_cvs, p_chb, p_cvb, w_ce, w_pend, p_crx} = '0;
+    wire w_chg = (c_hs != p_chs) || (c_vs != p_cvs) || (c_hb != p_chb) ||
+                 (c_vb != p_cvb) || (c_rx != p_crx);
+    wire w_pulse = (w_chg || w_pend) && !w_ce;
+    always @(posedge clk) begin     // not always_ff, which may not share the initial block
+        {p_chs, p_cvs, p_chb, p_cvb, p_crx} <= {c_hs, c_vs, c_hb, c_vb, c_rx};
+        w_ce   <= w_pulse;
+        w_pend <= (w_chg || w_pend) && w_ce;
+    end
+    wire [7:0] c_r = !sz_on ? c_rgb[23:16] : c_on ? {l_q[17:12], l_q[17:16]} : 8'd0;
+    wire [7:0] c_g = !sz_on ? c_rgb[15:8]  : c_on ? {l_q[11:6],  l_q[11:10]} : 8'd0;
+    wire [7:0] c_b = !sz_on ? c_rgb[7:0]   : c_on ? {l_q[5:0],   l_q[5:4]}   : 8'd0;
 
     // --------------------------------------------------- Y/C subcarrier
     // The encoder's 40-bit phase step, f_sc * 2^40 / CLK_HZ, from
@@ -246,7 +415,6 @@ module pocket_analogizer #(
     localparam logic [63:0] CB_PAL    = rdiv(64'(CLK_HZ) * 64'd40, 64'd17_734_475) + CB_START;
     localparam logic [26:0] CB_RANGE  = {CB_START[6:0], CB_NTSC[9:0], CB_PAL[9:0]};
 
-    wire  [3:0] a_video_type;
     wire        pal = (a_video_type == 4'h4);   // Y/C PAL
 
 
@@ -262,7 +430,7 @@ module pocket_analogizer #(
     ) u_analogizer (
         .clk_74a(clk_74a), .i_clk(clk), .i_rst_apf(a_rst), .i_rst_core(a_rst),
         .video_clk(clk),
-        .R(b_r), .G(b_g), .B(b_b), .Hblank(b_hb), .Vblank(b_vb), .Hsync(o_hs), .Vsync(o_vs),
+        .R(c_r), .G(c_g), .B(c_b), .Hblank(c_hb), .Vblank(c_vb), .Hsync(c_hs), .Vsync(c_vs),
         // the menu writes numbers, not file bytes: no byte swap either way
         .bridge_endian_little(1'b1), .bridge_addr(bridge_addr),
         .bridge_rd(bridge_rd), .analogizer_bridge_rd_data(),
@@ -272,7 +440,7 @@ module pocket_analogizer #(
         .SC_fx_out(), .pocket_blank_screen_out(a_blank), .analogizer_osd_out(),
         .CHROMA_PHASE_INC(pal ? PAL_STEP : NTSC_STEP), .COLORBURST_RANGE(CB_RANGE),
         .CHROMA_ADD(5'd0), .CHROMA_MUL(5'd0), .PALFLAG(pal),
-        .ce_pix(b_ce), .scandoubler(1'b1),
+        .ce_pix(sz_on ? w_pulse : c_ce), .scandoubler(1'b1),
         .p1_btn_state(p1_btn), .p1_joy_state(p1_joy),
         .p2_btn_state(p2_btn), .p2_joy_state(p2_joy),
         .p3_btn_state(p3_btn), .p4_btn_state(p4_btn),

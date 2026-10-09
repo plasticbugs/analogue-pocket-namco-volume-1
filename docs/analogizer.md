@@ -27,6 +27,7 @@ it (the first test build, v0.3.0-alpha.1, did; see *History* below).
 | SNAC Assignment | the six below |
 | Analogizer H Position | -16 to +16 dots; + moves the picture right |
 | Analogizer V Position | -24 to +2 lines; + moves the picture down |
+| Analogizer H Size | -20% to +20%; + wider. With the set on its side, the game's height |
 
 With **Analogizer** off the core behaves exactly as it did without Analogizer
 support and the cart pins stay as on a core that does not use the slot. The
@@ -39,6 +40,19 @@ port, the SCART cable's audio jack in the Pocket's headphone socket.
 cartridge slot, so `cartridge_adapter: 0` in `core.json` enables that slot for
 every user of this core, adapter or no adapter. The menu does not gate it. Do
 not leave a cartridge in the slot while running this core.
+
+**Width.** "Analogizer H Size" makes the picture narrower or wider about
+its centre, in percent, in the 15 kHz modes (RGBS, RGsB, YPbPr, Y/C): the
+core plays each line back a little faster or slower. With the CRT stood on
+its side, as this board's monitor was, that is the game's height. Many
+consumer sets have no width control of their own. The board starts hsync
+only 18 dots after the picture, so stretching soon reaches it: first centre
+the picture with H Position (about -16 here), then widen it. Where the two
+together would put picture on the sync or on the colour burst after it,
+the core crops the picture's edge instead, so the set never loses sync;
+if an edge goes missing, back one of them off. There is no vertical
+equivalent: a CRT's height is its sweep, and scaling lines would double
+or drop whole scanlines. The scandoubler modes are left alone.
 
 **Position.** The two sliders move the picture on the CRT, in the board's own
 dots and lines, for a set whose picture sits off centre. They move the syncs,
@@ -279,15 +293,24 @@ raster (414 x 258 dots, 288 x 224 visible, 15 clocks of 96 MHz a dot) and the
   differing, csync is never low while a dot is drawn, the scandoubler is
   unchanged; back at 0, csync is where it started. A jump between settings
   written just after a pulse (V +2 to -2, H +16 to -16) leaves csync out of
-  the picture for three frames. One step further (+18 dots, +3 lines) fails
-  the bench: a sync inside the picture.
+  the picture for three frames, and so does a large step to 0 (V +2 to 0,
+  H +16 to 0), which hands the sync back to the source's. One step further
+  (+18 dots, +3 lines) fails the bench: a sync inside the picture.
+- Width at both ends of the shipped slider (+20% and -20%), with the
+  picture centred by H Position -16 as a player would: 224 lines of 1,729
+  and 1,152 clocks (asked 1,728 and 1,152), centred to the clock, every dot
+  from the first to the last in order, held 6 (4) clocks; the lines as far
+  from vsync as at 0; scandoubler unchanged; at 0 exactly as before. At
+  +20% with H Position at either end, csync is never low while a dot is
+  drawn and the picture stays clear of the colour burst (it is cropped). (The wrapper's width stage is the template's; how it works is
+  in the template's docs/analogizer.md, "Picture width".)
 - All six SNAC assignments, the analog stick, and type "none" map as
   tabled; the blank bit; enable off again returns the port to idle.
 
 `sim/lint.sh` lints the wrapper (the vendored files' warnings dropped by
 path). `tools/check_json.py pkg/pocket --active 288x224` is clean: every
 entry inside its mask, the sliders within the wrapper's 8 bits, no data slot
-at `0xF7000000`, the slot powered, 11 menu entries and 3 data slots.
+at `0xF7000000`, the slot powered, 12 menu entries and 3 data slots.
 
 **Not proven:** anything on hardware with this core; that the firmware
 writes a signed slider as a two's complement word; the SNAC serial protocols,

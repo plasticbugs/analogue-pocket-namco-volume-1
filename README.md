@@ -96,10 +96,11 @@ cart-slot adapter: analog video (RGBS, RGsB, YPbPr, Y/C, SVGA scandoubler) out
 of the cartridge port and SNAC controllers in. The analog output is the board's
 own 288x224 raster at 15.46 kHz and 59.92 Hz, unrotated, so a CRT has to be
 turned as the cabinet's was. It is set up in the core's own menu (Analogizer,
-Analogizer Video, SNAC Adapter, SNAC Assignment, and H and V Position to
-centre the picture on the CRT); with "Analogizer" off, the default, the core
-is unchanged, and no `analogizer.bin` is needed. **Not yet tried with this
-core** (the same adapter code works in the Moo Mesa core). `docs/analogizer.md`
+Analogizer Video, SNAC Adapter, SNAC Assignment, H and V Position to
+centre the picture on the CRT, and H Size for its width -- with the set on
+its side, the game's height); with "Analogizer" off, the default, the core
+is unchanged, and no `analogizer.bin` is needed. Tested on a Pocket with an
+Analogizer and a CRT (v0.3.0); H Size is newer and not yet tried. `docs/analogizer.md`
 has the details, including the warning that this turns cartridge-slot power on
 for every user of the core.
 
