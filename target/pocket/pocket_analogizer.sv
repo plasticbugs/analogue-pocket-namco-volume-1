@@ -200,8 +200,8 @@ module pocket_analogizer #(
     wire [11:0] vd_now = (v_rise || vd_wrap) ? 12'd0 : vd + 12'd1;
     wire [10:0] vl_now = v_rise ? 11'd0 : vl + 11'(vd_wrap);
     wire [19:0] fc_now = v_rise ? 20'd0 : fc + 20'd1;
-    wire [11:0] h_at = (dh > 0) ? line_len - 12'(dh) : 12'(-dh);
-    wire [10:0] v_pos = (dv > 0) ? frame_lines - 11'(dv) : 11'(-dv);
+    wire [11:0] h_at = (dh > 0) ? line_len - 12'(dh) : -12'(dh);
+    wire [10:0] v_pos = (dv > 0) ? frame_lines - 11'(dv) : -11'(dv);
     // with the width stage on, the picture comes a line late: so does vsync
     wire [10:0] v_at = !sz_on ? v_pos : (v_pos + 11'd1 == frame_lines) ? 11'd0 : v_pos + 11'd1;
 
@@ -284,11 +284,12 @@ module pocket_analogizer #(
 
     // the output's length and start, from the last line
     wire [13:0] act_a = act_e - act_s;
+    wire signed [8:0] sz_pct = 9'sd100 + 9'(sz);       // 100 + n, the new width in percent
     logic [34:0] w_prod;
     logic [14:0] w_out;                     // the scaled length, in clocks
     logic signed [16:0] w_start;
     always_ff @(posedge clk) begin
-        w_prod  <= 35'(act_a) * 35'(8'sd100 + sz) * 35'd10486;    // / 100 = * 10486 / 2^20
+        w_prod  <= 35'(act_a) * 35'(sz_pct) * 35'd10486;          // / 100 = * 10486 / 2^20
         w_out   <= 15'(w_prod >> 20);
         w_start <= $signed({3'b0, act_s}) + (($signed({3'b0, act_a}) - $signed({2'b0, w_out})) >>> 1);
     end
